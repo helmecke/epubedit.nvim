@@ -14,11 +14,17 @@ for id, def in pairs(opf_view.GROUP_DEFS) do
   default_group_labels[id] = def.label
 end
 
+local commands = vim.tbl_extend("force", {}, common_commands, {
+  refresh = function(state)
+    manager.refresh(state.name)
+  end,
+})
+
 local M = {
   name = SOURCE_NAME,
   display_name = " 󰂺 EPUB ",
   components = common_components,
-  commands = common_commands,
+  commands = commands,
   default_config = {
     window = {
       position = "left",

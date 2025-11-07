@@ -33,3 +33,23 @@ vim.api.nvim_create_autocmd("User", {
   pattern = "EpubEditSessionClosed",
   callback = close_epub_source,
 })
+
+local function subscribe_rename_hook()
+  if vim.g._epubedit_neotree_rename_subscribed then
+    return
+  end
+  local ok, events = pcall(require, "neo-tree.events")
+  if not ok then
+    return
+  end
+  events.subscribe({
+    event = events.FILE_RENAMED,
+    id = "epubedit-neo-tree-rename",
+    handler = function(args)
+      neotree_integration.handle_rename(args)
+    end,
+  })
+  vim.g._epubedit_neotree_rename_subscribed = true
+end
+
+subscribe_rename_hook()

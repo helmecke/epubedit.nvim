@@ -6,6 +6,7 @@ Edit EPUB archives directly from Neovim. `epubedit.nvim` unpacks an EPUB into a 
 
 - Neovim 0.8.0 or newer
 - System `zip` and `unzip` binaries available on `$PATH` (configurable)
+- Optional: [`nvim-neo-tree/neo-tree.nvim`](https://github.com/nvim-neo-tree/neo-tree.nvim) to browse the OPF via a dedicated source
 
 ## Installation
 
@@ -28,6 +29,22 @@ Install with your preferred plugin manager. Example using [lazy.nvim](https://gi
 
 If unsaved buffers exist, `:EpubEditSave` refuses to proceed and lists the files to write. Workspaces are cleaned up automatically after saving unless `preserve_workspace = true`, and the working directory is restored when the session ends.
 
+### Neo-tree source
+
+If you navigate with [neo-tree.nvim](https://github.com/nvim-neo-tree/neo-tree.nvim), add the `epubedit` source to its configuration:
+
+```lua
+require("neo-tree").setup({
+  sources = { "filesystem", "buffers", "git_status", "epubedit" },
+  default_source = "filesystem",
+  epubedit = {
+    window = { position = "right" }, -- pick any location you prefer
+  },
+})
+```
+
+After opening an EPUB workspace, run `:Neotree source=epubedit` (or use the source selector) to see the OPF spine followed by manifest resources grouped by media type. The source refreshes automatically after `:EpubEditOpen`, `:EpubEditSave`, or when the workspace is cleaned up; it displays a helpful placeholder when no session is active.
+
 ### Commands
 
 - `:EpubEditOpen [path]` – Unpack an EPUB into a workspace.
@@ -46,10 +63,13 @@ require("epubedit").setup({
   workspace_root = nil,     -- optional directory for unpacked workspaces
   preserve_workspace = false, -- keep workspaces after saving
   prompt_overwrite = true,  -- confirm before overwriting the source EPUB
+  neo_tree = {
+    media_order = { "application/xhtml+xml", "text/html", "text/css", "application/x-dtbncx+xml" },
+  },
 })
 ```
 
-`workspace_root` defaults to the OS temp directory. When set, the plugin creates uniquely named sub-directories inside the provided path.
+`workspace_root` defaults to the OS temp directory. When set, the plugin creates uniquely named sub-directories inside the provided path. The `neo_tree` section lets you override how manifest resources are grouped when rendered through the neo-tree source.
 
 ## Development
 

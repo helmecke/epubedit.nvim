@@ -6,12 +6,16 @@ local module = require("epubedit.module")
 ---@field workspace_root string|nil Directory for unpacked workspaces; defaults to OS temp dir.
 ---@field preserve_workspace boolean When true, keep workspace directories after saving.
 ---@field prompt_overwrite boolean When true, confirm before overwriting the original EPUB.
+---@field neo_tree table|nil Neo-tree integration config.
 local defaults = {
   zip_bin = "zip",
   unzip_bin = "unzip",
   workspace_root = nil,
   preserve_workspace = false,
   prompt_overwrite = true,
+  neo_tree = {
+    media_order = { "application/xhtml+xml", "text/html", "text/css", "application/x-dtbncx+xml" },
+  },
 }
 
 ---@class epubedit.Module

@@ -188,6 +188,19 @@ local function ensure_dependencies(config)
   return true
 end
 
+local function emit_event(pattern, payload)
+  local ok, err = pcall(vim.api.nvim_exec_autocmds, "User", {
+    pattern = pattern,
+    modeline = false,
+    data = payload,
+  })
+  if not ok then
+    vim.schedule(function()
+      vim.notify(string.format("epubedit: failed to emit %s: %s", pattern, err), vim.log.levels.DEBUG)
+    end)
+  end
+end
+
 local function create_workspace(config)
   if config.workspace_root and config.workspace_root ~= "" then
     local base, err = ensure_directory(config.workspace_root)
@@ -332,6 +345,11 @@ local function cleanup_session(session, config, opts)
   if M.state.current == session then
     M.state.current = nil
   end
+
+  emit_event("EpubEditSessionClosed", {
+    source = session.source,
+    workspace = session.workspace,
+  })
 end
 
 function M.configure(config)
@@ -440,6 +458,12 @@ function M.open(path, config)
   local message = string.format("EPUB unpacked to %s", workspace)
   vim.notify(message, vim.log.levels.INFO)
 
+  emit_event("EpubEditSessionOpen", {
+    source = session.source,
+    workspace = session.workspace,
+    opf = session.opf,
+  })
+
   return true
 end
 
@@ -509,6 +533,12 @@ function M.save(target, config)
 
   local message = string.format("EPUB saved to %s", output_path)
   vim.notify(message, vim.log.levels.INFO)
+
+  emit_event("EpubEditSessionSaved", {
+    source = session.source,
+    workspace = session.workspace,
+    output = output_path,
+  })
 
   cleanup_session(session, config)
 

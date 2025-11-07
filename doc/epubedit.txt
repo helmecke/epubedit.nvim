@@ -7,6 +7,7 @@ CONTENTS                                                         *epubedit-toc*
 2. Commands ............................................... |epubedit-commands|
 3. Configuration .......................................... |epubedit-config|
 4. Health Check ........................................... |epubedit-health|
+5. Neo-tree Source ........................................ |epubedit-neotree|
 
 ==============================================================================
 1. Introduction                                                   *epubedit-intro*
@@ -19,6 +20,7 @@ directory by default and are cleaned up automatically after saving.
 Requirements~
   - Neovim 0.8.0 or newer
   - System `zip` and `unzip` binaries (paths configurable via |epubedit-config|)
+  - Optional: `nvim-neo-tree/neo-tree.nvim` for the OPF neo-tree source
 
 ==============================================================================
 2. Commands                                                    *epubedit-commands*
@@ -48,12 +50,22 @@ Use |lua| to configure the plugin:
       workspace_root = nil,       -- directory for unpacked workspaces
       preserve_workspace = false, -- keep workspaces after saving
       prompt_overwrite = true,    -- confirm before replacing the source EPUB
+      neo_tree = {
+        media_order = {
+          "application/xhtml+xml",
+          "text/html",
+          "text/css",
+          "application/x-dtbncx+xml",
+        },
+      },
     })
 <
 
 `workspace_root` defaults to the OS temporary directory. When set, epubedit.nvim
 creates unique sub-directories inside the provided path. Set
 `preserve_workspace = true` to keep workspaces around for manual inspection.
+Use the `neo_tree` table to tweak how manifest resources are grouped inside the
+neo-tree source (see |epubedit-neotree|).
 
 ==============================================================================
 4. Health Check                                                 *epubedit-health*
@@ -66,6 +78,30 @@ Run `:checkhealth epubedit` to verify:
 
 Failed checks include suggestions for overriding binary paths via
 `require("epubedit").setup()`.
+
+==============================================================================
+5. Neo-tree Source                                              *epubedit-neotree*
+
+Install |neo-tree.nvim| alongside epubedit to browse the OPF manifest/spine
+without leaving your navigation pane. Add the `epubedit` source to your
+`require("neo-tree").setup()` call:
+
+>lua
+    require("neo-tree").setup({
+      sources = { "filesystem", "buffers", "git_status", "epubedit" },
+      default_source = "filesystem",
+      epubedit = {
+        window = { position = "right" },
+      },
+    })
+<
+
+After running |:EpubEditOpen|, execute `:Neotree source=epubedit` (or select it
+from the source selector) to render the OPF spine first, followed by manifest
+resources grouped by media type. The source refreshes automatically after
+`:EpubEditOpen`, `:EpubEditSave`, or session cleanup and displays a placeholder
+when no workspace is active or if the OPF cannot be parsed. Adjust the grouping
+order by overriding |epubedit-config| `neo_tree.media_order`.
 
 ============================================================================== 
 vim:tw=78:ts=8:ft=help:norl:

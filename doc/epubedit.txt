@@ -1,0 +1,71 @@
+*epubedit.txt*                  For Neovim >= 0.8.0                 *epubedit*
+
+============================================================================== 
+CONTENTS                                                         *epubedit-toc*
+
+1. Introduction ........................................... |epubedit-intro|
+2. Commands ............................................... |epubedit-commands|
+3. Configuration .......................................... |epubedit-config|
+4. Health Check ........................................... |epubedit-health|
+
+==============================================================================
+1. Introduction                                                   *epubedit-intro*
+
+epubedit.nvim lets you unpack an EPUB archive into a managed workspace,
+edit key assets (OPF, NCX, HTML/XHTML, CSS) inside Neovim buffers, and repack
+the archive without leaving the editor. Workspaces live in a temporary
+directory by default and are cleaned up automatically after saving.
+
+Requirements~
+  - Neovim 0.8.0 or newer
+  - System `zip` and `unzip` binaries (paths configurable via |epubedit-config|)
+
+==============================================================================
+2. Commands                                                    *epubedit-commands*
+
+:EpubEditOpen [path]~
+    Unpack an EPUB into a workspace. When `path` is omitted, you are prompted
+    for a file. The OPF and nearby HTML/XHTML, CSS, and NCX assets live inside
+    the workspace directory so you can open them with your preferred workflow.
+    The plugin temporarily switches |:pwd| to the workspace and restores your
+    previous directory when the session ends.
+
+:EpubEditSave [path]~
+    Repack the active workspace. Provide `path` to write a copy to a new file;
+    otherwise the source EPUB is replaced (with confirmation unless
+    `prompt_overwrite` is disabled). The command aborts if any tracked buffers
+    have unsaved changes.
+
+==============================================================================
+3. Configuration                                                *epubedit-config*
+
+Use |lua| to configure the plugin:
+
+>lua
+    require("epubedit").setup({
+      zip_bin = "zip",            -- override the `zip` binary
+      unzip_bin = "unzip",        -- override the `unzip` binary
+      workspace_root = nil,       -- directory for unpacked workspaces
+      preserve_workspace = false, -- keep workspaces after saving
+      prompt_overwrite = true,    -- confirm before replacing the source EPUB
+    })
+<
+
+`workspace_root` defaults to the OS temporary directory. When set, epubedit.nvim
+creates unique sub-directories inside the provided path. Set
+`preserve_workspace = true` to keep workspaces around for manual inspection.
+
+==============================================================================
+4. Health Check                                                 *epubedit-health*
+
+Run `:checkhealth epubedit` to verify:
+  - The configured `zip`/`unzip` binaries are executable.
+  - `workspace_root` (when provided) is accessible.
+  - Core dependencies are available for the current session (including the
+    bundled OPF parser).
+
+Failed checks include suggestions for overriding binary paths via
+`require("epubedit").setup()`.
+
+============================================================================== 
+vim:tw=78:ts=8:ft=help:norl:

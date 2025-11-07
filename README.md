@@ -1,47 +1,58 @@
-# A Neovim Plugin Template
+# epubedit.nvim
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ellisonleao/nvim-plugin-template/lint-test.yml?branch=main&style=for-the-badge)
-![Lua](https://img.shields.io/badge/Made%20with%20Lua-blueviolet.svg?style=for-the-badge&logo=lua)
+Edit EPUB archives directly from Neovim. `epubedit.nvim` unpacks an EPUB into a temporary workspace and repacks the archive when you are done.
 
-A template repository for Neovim plugins.
+## Requirements
 
-## Using it
+- Neovim 0.8.0 or newer
+- System `zip` and `unzip` binaries available on `$PATH` (configurable)
 
-Via `gh`:
+## Installation
 
+Install with your preferred plugin manager. Example using [lazy.nvim](https://github.com/folke/lazy.nvim):
+
+```lua
+{
+  "helmecke/epubedit.nvim",
+  config = function()
+    require("epubedit").setup()
+  end,
+}
 ```
-$ gh repo create my-plugin -p ellisonleao/nvim-plugin-template
+
+## Usage
+
+1. Run `:EpubEditOpen path/to/book.epub` (or omit the path to be prompted). The plugin unpacks the archive into a managed workspace on disk and switches Neovim's current working directory to that location.
+2. Edit any buffer inside the workspace using normal Neovim navigation—`:edit`, Telescope, fuzzy finders, etc. Saving a buffer writes back to the unpacked copy.
+3. Run `:EpubEditSave` to repack the archive in place, or `:EpubEditSave path/to/output.epub` to create a new copy.
+
+If unsaved buffers exist, `:EpubEditSave` refuses to proceed and lists the files to write. Workspaces are cleaned up automatically after saving unless `preserve_workspace = true`, and the working directory is restored when the session ends.
+
+### Commands
+
+- `:EpubEditOpen [path]` – Unpack an EPUB into a workspace.
+- `:EpubEditSave [path]` – Repack the active workspace. Optional `path` writes to a different location; otherwise the original file is replaced (with confirmation by default).
+
+### Health Check
+
+Run `:checkhealth epubedit` to verify the `zip`/`unzip` dependencies and workspace configuration.
+
+## Configuration
+
+```lua
+require("epubedit").setup({
+  zip_bin = "zip",          -- custom path to `zip`
+  unzip_bin = "unzip",      -- custom path to `unzip`
+  workspace_root = nil,     -- optional directory for unpacked workspaces
+  preserve_workspace = false, -- keep workspaces after saving
+  prompt_overwrite = true,  -- confirm before overwriting the source EPUB
+})
 ```
 
-Via github web page:
+`workspace_root` defaults to the OS temp directory. When set, the plugin creates uniquely named sub-directories inside the provided path.
 
-Click on `Use this template`
+## Development
 
-![](https://docs.github.com/assets/cb-36544/images/help/repository/use-this-template-button.png)
-
-## Features and structure
-
-- 100% Lua
-- Github actions for:
-  - running tests using [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) and [busted](https://olivinelabs.com/busted/)
-  - check for formatting errors (Stylua)
-  - vimdocs autogeneration from README.md file
-  - luarocks release (LUAROCKS_API_KEY secret configuration required)
-
-### Plugin structure
-
-```
-.
-├── lua
-│   ├── plugin_name
-│   │   └── module.lua
-│   └── plugin_name.lua
-├── Makefile
-├── plugin
-│   └── plugin_name.lua
-├── README.md
-├── tests
-│   ├── minimal_init.lua
-│   └── plugin_name
-│       └── plugin_name_spec.lua
-```
+- Run the test suite with `make test` (requires Neovim plus `zip`/`unzip`).
+- Format Lua code with `stylua lua plugin`.
+- Regenerate help docs with `make docs` (CI handles this automatically via `panvimdoc`).

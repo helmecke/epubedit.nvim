@@ -18,5 +18,7 @@ vim.opt.rtp:append(plenary_dir)
 vim.opt.rtp:append(nui_dir)
 vim.opt.rtp:append(neotree_dir)
 
+vim.cmd("runtime plugin/epubedit-neotree.lua")
+
 vim.cmd("runtime plugin/plenary.vim")
 require("plenary.busted")

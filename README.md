@@ -44,6 +44,7 @@ require("neo-tree").setup({
 ```
 
 After opening an EPUB workspace, run `:Neotree source=epubedit` (or use the source selector) to see the OPF spine followed by manifest resources grouped by media type. The source refreshes automatically after `:EpubEditOpen`, `:EpubEditSave`, or when the workspace is cleaned up; it displays a helpful placeholder when no session is active.
+Grouping mirrors Sigil’s “Text / Styles / Images / Fonts / Audio / Video / Misc” structure, and you can rename/reorder those sections via `neo_tree.group_labels` and `neo_tree.group_order`.
 
 ### Commands
 
@@ -64,12 +65,21 @@ require("epubedit").setup({
   preserve_workspace = false, -- keep workspaces after saving
   prompt_overwrite = true,  -- confirm before overwriting the source EPUB
   neo_tree = {
-    media_order = { "application/xhtml+xml", "text/html", "text/css", "application/x-dtbncx+xml" },
+    group_order = { "text", "styles", "images", "fonts", "audio", "video", "misc" },
+    group_labels = {
+      text = "Text",
+      styles = "Styles",
+      images = "Images",
+      fonts = "Fonts",
+      audio = "Audio",
+      video = "Video",
+      misc = "Misc",
+    },
   },
 })
 ```
 
-`workspace_root` defaults to the OS temp directory. When set, the plugin creates uniquely named sub-directories inside the provided path. The `neo_tree` section lets you override how manifest resources are grouped when rendered through the neo-tree source.
+`workspace_root` defaults to the OS temp directory. When set, the plugin creates uniquely named sub-directories inside the provided path. The `neo_tree` section lets you override the Sigil-style grouping order/labels used inside the neo-tree source.
 
 ## Development
 

@@ -3,10 +3,73 @@ local opf_parser = require("epubedit.parser.opf")
 
 local path_sep = package.config:sub(1, 1)
 
-local DEFAULT_MEDIA_ORDER = { "application/xhtml+xml", "text/html", "text/css", "application/x-dtbncx+xml" }
+local DEFAULT_GROUP_ORDER = { "text", "styles", "images", "fonts", "audio", "video", "misc" }
+
+local GROUP_DEFS = {
+  text = {
+    label = "Text",
+    matcher = function(item)
+      local media = item.media_type or ""
+      if media == "" then
+        return false
+      end
+      if media == "application/xhtml+xml" or media == "text/html" or media == "application/x-dtbncx+xml" then
+        return true
+      end
+      if media == "application/xml" and item.href and item.href:match("%.x?html$") then
+        return true
+      end
+      return false
+    end,
+  },
+  styles = {
+    label = "Styles",
+    matcher = function(item)
+      return (item.media_type or "") == "text/css"
+    end,
+  },
+  images = {
+    label = "Images",
+    matcher = function(item)
+      return (item.media_type or ""):match("^image/")
+    end,
+  },
+  fonts = {
+    label = "Fonts",
+    matcher = function(item)
+      local media = item.media_type or ""
+      if media:match("^font/") then
+        return true
+      end
+      if media:match("opentype") or media:match("truetype") then
+        return true
+      end
+      return media == "application/font-woff" or media == "application/x-font-ttf" or media == "application/vnd.ms-opentype"
+    end,
+  },
+  audio = {
+    label = "Audio",
+    matcher = function(item)
+      return (item.media_type or ""):match("^audio/")
+    end,
+  },
+  video = {
+    label = "Video",
+    matcher = function(item)
+      return (item.media_type or ""):match("^video/")
+    end,
+  },
+  misc = {
+    label = "Misc",
+    matcher = function()
+      return true
+    end,
+  },
+}
 
 local M = {
-  DEFAULT_MEDIA_ORDER = DEFAULT_MEDIA_ORDER,
+  DEFAULT_GROUP_ORDER = DEFAULT_GROUP_ORDER,
+  GROUP_DEFS = GROUP_DEFS,
 }
 
 local function resolve_path(session, parsed, entry)
@@ -69,49 +132,67 @@ function M.build(session, opts)
     }
   end
 
-  local nodes = {}
-
-  local spine_children = build_children(parsed.spine or {}, make_leaf)
-  if #spine_children > 0 then
-    table.insert(nodes, {
-      id = "epubedit:spine",
-      name = "Spine",
-      type = "directory",
-      path = session.workspace,
-      children = spine_children,
-    })
+  local manifest_items = {}
+  for _, item in pairs(parsed.manifest or {}) do
+    table.insert(manifest_items, item)
   end
 
-  local order = opts.media_order or DEFAULT_MEDIA_ORDER
-  local resources = parsed.resources or {}
-  local added_groups = {}
-
-  for _, media in ipairs(order) do
-    local group_children = build_children(resources[media] or {}, make_leaf)
-    if #group_children > 0 then
-      table.insert(nodes, {
-        id = "epubedit:media:" .. media,
-        name = media,
-        type = "directory",
-        path = session.workspace,
-        children = group_children,
-      })
-      added_groups[media] = true
+  local group_order = opts.group_order or DEFAULT_GROUP_ORDER
+  local group_labels = vim.tbl_deep_extend("force", {}, GROUP_DEFS)
+  if opts.group_labels then
+    for key, label in pairs(opts.group_labels) do
+      group_labels[key] = group_labels[key] or {}
+      group_labels[key].label = label
     end
   end
 
-  for media, items in pairs(resources) do
-    if not added_groups[media] then
-      local group_children = build_children(items, make_leaf)
-      if #group_children > 0 then
-        table.insert(nodes, {
-          id = "epubedit:media:" .. media,
-          name = media,
-          type = "directory",
-          path = session.workspace,
-          children = group_children,
-        })
+  local groups = {}
+  local function ensure_group(id)
+    local def = group_labels[id] or GROUP_DEFS[id] or { label = id }
+    if not groups[id] then
+      groups[id] = {
+        id = "epubedit:group:" .. id,
+        name = def.label or id,
+        type = "directory",
+        path = session.workspace,
+        children = {},
+      }
+    end
+    return groups[id]
+  end
+
+  local function add_item(group_id, item)
+    local node = make_leaf(item)
+    if node then
+      local group = ensure_group(group_id)
+      table.insert(group.children, node)
+    end
+  end
+
+  -- Prioritize spine order within the text group.
+  for _, entry in ipairs(parsed.spine or {}) do
+    add_item("text", entry)
+  end
+
+  -- Assign remaining items to groups based on matchers.
+  for _, item in ipairs(manifest_items) do
+    local target_group = nil
+    for _, group_id in ipairs(group_order) do
+      local def = GROUP_DEFS[group_id]
+      if def and def.matcher(item) then
+        target_group = group_id
+        break
       end
+    end
+    target_group = target_group or "misc"
+    add_item(target_group, item)
+  end
+
+  local nodes = {}
+  for _, group_id in ipairs(group_order) do
+    local group = groups[group_id]
+    if group and #group.children > 0 then
+      table.insert(nodes, group)
     end
   end
 
@@ -125,6 +206,21 @@ function M.build(session, opts)
         children = {},
       },
     }
+  end
+
+  if session.opf and fn.filereadable(session.opf) == 1 then
+    local display = session.opf
+    if session.workspace and display:sub(1, #session.workspace) == session.workspace then
+      display = display:sub(#session.workspace + 1)
+      display = display:gsub("^" .. path_sep, "")
+    end
+    table.insert(nodes, {
+      id = session.opf,
+      name = display,
+      type = "file",
+      path = session.opf,
+      children = {},
+    })
   end
 
   return {

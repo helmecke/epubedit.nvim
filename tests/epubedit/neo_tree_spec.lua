@@ -16,6 +16,8 @@ local function ensure_neotree()
     return
   end
 
+  package.loaded["neo-tree.sources.epubedit"] = require("epubedit.neo_tree")
+
   neotree.setup({
     enable_git_status = false,
     enable_diagnostics = false,
@@ -78,18 +80,18 @@ describe("neo-tree source", function()
 
     local roots = collect_nodes()
 
-    local spine
+    local text_group
     for _, node in ipairs(roots) do
-      if node.id == "epubedit:spine" then
-        spine = node
+      if node.name == "Text" then
+        text_group = node
         break
       end
     end
-    assert.is_not_nil(spine, "expected a spine root node")
+    assert.is_not_nil(text_group, "expected a Text group node")
 
-    local spine_children = spine.children or {}
-    assert.is_true(#spine_children > 0, "expected spine entries")
-    local first = spine_children[1]
+    local text_children = text_group.children or {}
+    assert.is_true(#text_children > 0, "expected text entries")
+    local first = text_children[1]
     assert.are.equal("file", first.type)
     assert.are.equal(1, vim.fn.filereadable(first.path))
   end)

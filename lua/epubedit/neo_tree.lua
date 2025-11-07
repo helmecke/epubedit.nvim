@@ -9,6 +9,11 @@ local opf_view = require("epubedit.opf_view")
 local SOURCE_NAME = "epubedit"
 local REFRESH_EVENTS = { "EpubEditSessionOpen", "EpubEditSessionSaved", "EpubEditSessionClosed" }
 
+local default_group_labels = {}
+for id, def in pairs(opf_view.GROUP_DEFS) do
+  default_group_labels[id] = def.label
+end
+
 local M = {
   name = SOURCE_NAME,
   display_name = " 󰂺 EPUB ",
@@ -18,7 +23,8 @@ local M = {
     window = {
       position = "left",
     },
-    media_order = opf_view.DEFAULT_MEDIA_ORDER,
+    group_order = opf_view.DEFAULT_GROUP_ORDER,
+    group_labels = vim.deepcopy(default_group_labels),
   },
 }
 

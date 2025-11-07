@@ -14,7 +14,16 @@ local defaults = {
   preserve_workspace = false,
   prompt_overwrite = true,
   neo_tree = {
-    media_order = { "application/xhtml+xml", "text/html", "text/css", "application/x-dtbncx+xml" },
+    group_order = { "text", "styles", "images", "fonts", "audio", "video", "misc" },
+    group_labels = {
+      text = "Text",
+      styles = "Styles",
+      images = "Images",
+      fonts = "Fonts",
+      audio = "Audio",
+      video = "Video",
+      misc = "Misc",
+    },
   },
 }
 

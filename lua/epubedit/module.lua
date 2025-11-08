@@ -545,6 +545,17 @@ function M.save(target, config)
   return true
 end
 
+function M.close(config)
+  config = config or M.config
+  local session = M.state.current
+  if not session then
+    return false, "No active EPUB session. Run :EpubEditOpen first."
+  end
+  cleanup_session(session, config, { preserve_workspace = config.preserve_workspace })
+  vim.notify("EPUB workspace closed without saving.", vim.log.levels.INFO)
+  return true
+end
+
 function M.cleanup(config)
   config = config or M.config
   local session = M.state.current

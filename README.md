@@ -50,6 +50,7 @@ Grouping mirrors Sigil’s “Text / Styles / Images / Fonts / Audio / Video / M
 
 - `:EpubEditOpen [path]` – Unpack an EPUB into a workspace.
 - `:EpubEditSave [path]` – Repack the active workspace. Optional `path` writes to a different location; otherwise the original file is replaced (with confirmation by default).
+- `:EpubEditClose` – Abandon the current workspace without saving, clean up the temp directory, and restore the previous working directory.
 
 ### Health Check
 

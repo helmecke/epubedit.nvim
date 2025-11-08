@@ -38,6 +38,12 @@ Requirements~
     `prompt_overwrite` is disabled). The command aborts if any tracked buffers
     have unsaved changes.
 
+:EpubEditClose~
+    Abandon the current workspace without saving. The command restores the
+    previous working directory, emits the same cleanup events used after save,
+    and removes the temporary workspace unless |epubedit-config|
+    `preserve_workspace` is `true`.
+
 ==============================================================================
 3. Configuration                                                *epubedit-config*
 

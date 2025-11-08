@@ -88,6 +88,14 @@ function M.cleanup()
   return ok
 end
 
+function M.close()
+  local ok, err = module.close(M.config)
+  if not ok and err then
+    vim.notify(err, vim.log.levels.ERROR)
+  end
+  return ok
+end
+
 -- ensure internal module has defaults even before setup() is called
 module.configure(M.config)
 

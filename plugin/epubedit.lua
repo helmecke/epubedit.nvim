@@ -15,3 +15,9 @@ end, {
   complete = "file",
   desc = "Repack the active EPUB workspace",
 })
+
+vim.api.nvim_create_user_command("EpubEditClose", function()
+  epubedit.close()
+end, {
+  desc = "Close the active EPUB workspace without saving",
+})

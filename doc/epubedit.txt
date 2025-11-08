@@ -97,7 +97,7 @@ without leaving your navigation pane. Add the `epubedit` source to your
     })
 <
 
-After running |:EpubEditOpen|, epubedit automatically opens Neo-tree’s
+After running |:EpubEditOpen|, epubedit automatically opens and focuses Neo-tree’s
 `epubedit` source (when neo-tree is installed and the source is listed in
 |neo-tree-setup|) so the OPF spine appears first, followed by manifest resources
 grouped by media type. You can still run

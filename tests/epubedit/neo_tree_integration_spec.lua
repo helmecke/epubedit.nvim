@@ -37,12 +37,12 @@ describe("neo-tree auto hooks", function()
     package.loaded["neo-tree.command"] = original_command
   end)
 
-  it("opens the epub source after :EpubEditOpen and closes on save events", function()
+  it("opens and focuses the epub source after :EpubEditOpen and closes on save events", function()
     local ok, err = core.open(sample_epub, epubedit.get_config())
     assert(ok, err or "failed to open sample EPUB")
     assert.are_not_equal(0, #command_stub.calls, "expected neo-tree execute to be called")
     local open_call = command_stub.calls[1]
-    assert.are.same("show", open_call.action)
+    assert.are.same("focus", open_call.action)
     assert.are.same("epubedit", open_call.source)
     assert.is_not_nil(open_call.dir)
 

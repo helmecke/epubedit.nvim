@@ -16,7 +16,7 @@ local function get_command()
   return command
 end
 
-function M.open(workspace)
+function M.open(workspace, opts)
   local command, err = get_command()
   if not command then
     return false, err
@@ -25,6 +25,12 @@ function M.open(workspace)
     source = SOURCE_NAME,
     action = "show",
   }
+  opts = opts or {}
+  if opts.action then
+    args.action = opts.action
+  elseif opts.focus then
+    args.action = "focus"
+  end
   if workspace and workspace ~= "" then
     args.dir = workspace
   end

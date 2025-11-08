@@ -38,7 +38,7 @@ vim.api.nvim_create_autocmd("User", {
   callback = function(event)
     subscribe_rename_hook()
     local workspace = event and event.data and event.data.workspace or nil
-    neotree_integration.open(workspace)
+    neotree_integration.open(workspace, { focus = true })
   end,
 })
 

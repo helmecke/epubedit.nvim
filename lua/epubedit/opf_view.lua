@@ -3,6 +3,26 @@ local opf_parser = require("epubedit.parser.opf")
 
 local path_sep = package.config:sub(1, 1)
 
+local function normalize_workspace(path)
+  if not path or path == "" then
+    return path
+  end
+  return fn.fnamemodify(path, ":p")
+end
+
+local function relative_to_workspace(session, path)
+  if not session or not session.workspace or not path then
+    return path
+  end
+  local workspace = normalize_workspace(session.workspace)
+  local normalized = normalize_workspace(path)
+  if normalized:sub(1, #workspace) ~= workspace then
+    return normalized
+  end
+  local rel = normalized:sub(#workspace + 1):gsub("^" .. path_sep, "")
+  return rel
+end
+
 local DEFAULT_GROUP_ORDER = { "text", "styles", "images", "fonts", "audio", "video", "misc" }
 
 local GROUP_DEFS = {
@@ -191,6 +211,10 @@ function M.build(session, opts)
         type = "directory",
         path = session.workspace,
         children = {},
+        extra = {
+          group_id = id,
+          default_dir = nil,
+        },
       }
     end
     return groups[id]
@@ -201,6 +225,12 @@ function M.build(session, opts)
     if node then
       local group = ensure_group(group_id)
       table.insert(group.children, node)
+      if group.extra and not group.extra.default_dir and node.path then
+        local rel_parent = relative_to_workspace(session, fn.fnamemodify(node.path, ":h"))
+        if rel_parent and rel_parent ~= "" then
+          group.extra.default_dir = rel_parent
+        end
+      end
     end
   end
 

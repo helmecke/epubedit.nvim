@@ -2,6 +2,8 @@ local epubedit = require("epubedit")
 local core = require("epubedit.module")
 
 local stub = require("luassert.stub")
+local utils = require("neo-tree.utils")
+local opf_manager = require("epubedit.opf_manager")
 local match = require("luassert.match")
 
 local manager = require("neo-tree.sources.manager")
@@ -172,6 +174,114 @@ describe("neo-tree source", function()
     move_spy:revert()
     input_spy:revert()
     state.tree = original_tree
+    core.cleanup(epubedit.get_config())
+  end)
+
+  it("creates files under the current group using the OPF root prefix (EPUB2)", function()
+    local ok, err = core.open(sample_epub, epubedit.get_config())
+    assert(ok, err or "failed to open EPUB")
+    collect_nodes()
+    local state = manager.get_state("epubedit")
+    local workspace = core.state.current.workspace
+    local group_node = {
+      type = "directory",
+      path = workspace,
+      id = "epubedit:group:text",
+      extra = { default_dir = "OPS/Text" },
+      empty_expanded = false,
+      get_id = function()
+        return "epubedit:group:text"
+      end,
+      get_parent_id = function()
+        return nil
+      end,
+      is_expanded = function()
+        return true
+      end,
+    }
+    local tree = {
+      get_node = function(_, id)
+        if id == nil or id == group_node:get_id() then
+          return group_node
+        end
+      end,
+    }
+    state.tree = tree
+
+    local create_stub = stub(fs_actions, "create_node", function(_, cb)
+      cb(workspace .. "/OPS/Text/chapter2.xhtml")
+    end)
+    local opf_stub = stub(opf_manager, "add_manifest_entry").returns(true)
+    local input_stub = stub(inputs, "input", function(prompt, default_value, cb)
+      assert.is_truthy(prompt:match("OPS/"))
+      assert.are.equal("Text" .. utils.path_separator, default_value)
+      cb("chapter2.xhtml")
+    end)
+    state.commands.add(state)
+    local target_dir = vim.fn.fnamemodify(workspace .. "/OPS/Text", ":p")
+    local root_dir = vim.fn.fnamemodify(workspace .. "/OPS", ":p")
+    assert.stub(create_stub).was_called_with(target_dir, match.is_function(), root_dir)
+    local opf_args = opf_stub.calls[#opf_stub.calls].refs
+    assert.are.equal(core.state.current, opf_args[1])
+    assert.is_string(opf_args[2])
+    assert.same("text", opf_args[3].group)
+    assert.is_true(opf_args[3].add_to_spine)
+    create_stub:revert()
+    opf_stub:revert()
+    input_stub:revert()
+    core.cleanup(epubedit.get_config())
+  end)
+
+  it("creates files under the current group using the OPF root prefix (EPUB3)", function()
+    local ok, err = core.open(sample_epub3, epubedit.get_config())
+    assert(ok, err or "failed to open EPUB3")
+    collect_nodes()
+    local state = manager.get_state("epubedit")
+    local workspace = core.state.current.workspace
+    local group_node = {
+      type = "directory",
+      path = workspace,
+      id = "epubedit:group:styles",
+      extra = { default_dir = "OEBPS/Styles" },
+      empty_expanded = false,
+      get_id = function()
+        return "epubedit:group:styles"
+      end,
+      get_parent_id = function()
+        return nil
+      end,
+      is_expanded = function()
+        return true
+      end,
+    }
+    state.tree = {
+      get_node = function(_, id)
+        if id == nil or id == group_node:get_id() then
+          return group_node
+        end
+      end,
+    }
+    local create_stub = stub(fs_actions, "create_node", function(_, cb)
+      cb(workspace .. "/OEBPS/Styles/nav-new.xhtml")
+    end)
+    local opf_stub = stub(opf_manager, "add_manifest_entry").returns(true)
+    local input_stub = stub(inputs, "input", function(prompt, default_value, cb)
+      assert.is_truthy(prompt:match("OEBPS/"))
+      assert.are.equal("Styles" .. utils.path_separator, default_value)
+      cb("nav-new.xhtml")
+    end)
+    state.commands.add(state)
+    local target_dir = vim.fn.fnamemodify(workspace .. "/OEBPS/Styles", ":p")
+    local root_dir = vim.fn.fnamemodify(workspace .. "/OEBPS", ":p")
+    assert.stub(create_stub).was_called_with(target_dir, match.is_function(), root_dir)
+    local opf_args = opf_stub.calls[#opf_stub.calls].refs
+    assert.are.equal(core.state.current, opf_args[1])
+    assert.is_string(opf_args[2])
+    assert.same("styles", opf_args[3].group)
+    assert.is_false(opf_args[3].add_to_spine or false)
+    create_stub:revert()
+    opf_stub:revert()
+    input_stub:revert()
     core.cleanup(epubedit.get_config())
   end)
 end)

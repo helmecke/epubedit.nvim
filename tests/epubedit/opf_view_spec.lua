@@ -31,9 +31,9 @@ describe("opf view labels", function()
       base_dir = workspace .. "OEBPS/",
     })
 
-    local nodes, err = opf_view.build(session, {})
-    assert.is_nil(err)
-    assert.is_truthy(nodes)
+    local result = opf_view.build(session, {})
+    assert.is_table(result)
+    local nodes = result.nodes or {}
     local text_group = nodes[1]
     assert.are.equal("Text", text_group.name)
     local child = assert(text_group.children[1])

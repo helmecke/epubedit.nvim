@@ -81,6 +81,28 @@ local function resolve_path(session, parsed, entry)
   return path
 end
 
+local function normalize_href(path)
+  return (path or ""):gsub("\\", "/")
+end
+
+local function compute_display_prefix(session, parsed)
+  if not session or not session.workspace or not parsed.base_dir then
+    return ""
+  end
+  local workspace = fn.fnamemodify(session.workspace, ":p"):gsub(path_sep .. "$", "")
+  local base_dir = fn.fnamemodify(parsed.base_dir, ":p"):gsub(path_sep .. "$", "")
+  if base_dir == workspace then
+    return ""
+  end
+  if base_dir:sub(1, #workspace) == workspace then
+    local remainder = base_dir:sub(#workspace + 2)
+    if remainder and remainder ~= "" then
+      return normalize_href(remainder)
+    end
+  end
+  return normalize_href(base_dir)
+end
+
 ---@param entries table[]
 ---@param make_node fun(item: table): table|nil
 ---@return table[]
@@ -112,6 +134,19 @@ function M.build(session, opts)
   local seen_paths = {}
   local total_nodes = 0
 
+  local display_prefix = compute_display_prefix(session, parsed)
+
+  local function display_label(item, fallback)
+    local href = item and item.href or nil
+    if href and href ~= "" then
+      if display_prefix ~= "" then
+        return normalize_href(display_prefix .. "/" .. href)
+      end
+      return normalize_href(href)
+    end
+    return fallback
+  end
+
   local function make_leaf(item)
     local path = resolve_path(session, parsed, item)
     if not path or seen_paths[path] then
@@ -119,7 +154,7 @@ function M.build(session, opts)
     end
     seen_paths[path] = true
     total_nodes = total_nodes + 1
-    local label = item.href or path
+    local label = display_label(item, path)
     return {
       id = path,
       name = label,

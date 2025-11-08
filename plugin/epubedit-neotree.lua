@@ -42,13 +42,16 @@ local function subscribe_rename_hook()
   if not ok then
     return
   end
-  events.subscribe({
-    event = events.FILE_RENAMED,
-    id = "epubedit-neo-tree-rename",
-    handler = function(args)
-      neotree_integration.handle_rename(args)
-    end,
-  })
+  local handler = function(args)
+    neotree_integration.handle_path_change(args)
+  end
+  for _, ev in ipairs({ events.FILE_RENAMED, events.FILE_MOVED }) do
+    events.subscribe({
+      event = ev,
+      id = "epubedit-neo-tree-" .. ev,
+      handler = handler,
+    })
+  end
   vim.g._epubedit_neotree_rename_subscribed = true
 end
 

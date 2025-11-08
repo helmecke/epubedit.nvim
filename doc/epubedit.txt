@@ -104,8 +104,9 @@ grouped by media type. You can still run
 `:Neotree source=epubedit` or use the source selector if you close it manually.
 The pane refreshes automatically after `:EpubEditOpen`, `:EpubEditSave`, or
 session cleanup, and it closes again after saving/cleanup so stale workspaces do
-not linger. Renaming files through the `epubedit` source keeps `content.opf`
-updated and immediately refreshes the tree so hrefs stay in sync. When no
+not linger. Renaming or moving files through the `epubedit` source keeps
+`content.opf` updated and immediately refreshes the tree so hrefs stay in sync.
+When no
 workspace is active or if the OPF cannot be parsed, the source renders a
 placeholder message. Grouping mirrors Sigil’s “Text / Styles / Images / Fonts /
 Audio / Video / Misc” structure; adjust labels or ordering by overriding

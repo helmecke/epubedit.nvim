@@ -69,7 +69,7 @@ local function update_session_assets(session, old_path, new_path)
   end
 end
 
-function M.handle_rename(event)
+function M.handle_path_change(event)
   local args = event or {}
   local old_path = normalize_path(args.source)
   local new_path = normalize_path(args.destination)

@@ -66,10 +66,34 @@ describe("neo-tree auto hooks", function()
     local new_path = vim.fn.fnamemodify(workspace .. "/OPS/renamed.xhtml", ":p")
     assert(vim.loop.fs_rename(old_path, new_path), "failed to rename sample file")
 
-    integration.handle_rename({ source = old_path, destination = new_path })
+    integration.handle_path_change({ source = old_path, destination = new_path })
 
     local opf_content = table.concat(vim.fn.readfile(session.opf), "\n")
     assert.is_not_nil(opf_content:match("renamed%.xhtml"), "OPF did not update href")
+    assert.stub(refresh_stub).was_called_with("epubedit")
+
+    refresh_stub:revert()
+  end)
+
+  it("updates the OPF manifest when files are moved to new directories", function()
+    local refresh_stub = stub(manager, "refresh", function() end)
+
+    local ok, err = core.open(sample_epub, epubedit.get_config())
+    assert(ok, err or "failed to open sample EPUB")
+
+    local session = core.state.current
+    assert.is_not_nil(session, "expected active session")
+    local workspace = session.workspace
+    local old_path = vim.fn.fnamemodify(workspace .. "/OPS/style.css", ":p")
+    local target_dir = vim.fn.fnamemodify(workspace .. "/OPS/assets", ":p")
+    vim.fn.mkdir(target_dir, "p")
+    local new_path = vim.fn.fnamemodify(target_dir .. "/style.css", ":p")
+    assert(vim.loop.fs_rename(old_path, new_path), "failed to move sample file")
+
+    integration.handle_path_change({ source = old_path, destination = new_path })
+
+    local opf_content = table.concat(vim.fn.readfile(session.opf), "\n")
+    assert.is_not_nil(opf_content:match("assets/style%.css"), "OPF did not update href for move")
     assert.stub(refresh_stub).was_called_with("epubedit")
 
     refresh_stub:revert()

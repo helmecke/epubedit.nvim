@@ -140,8 +140,7 @@ local function get_directory_node(state)
   while node do
     local insert_as_local = state.config and state.config.insert_as
     local insert_as_global = neotree.config.window.insert_as
-    local use_parent = insert_as_local == "sibling"
-      or (insert_as_local == nil and insert_as_global == "sibling")
+    local use_parent = insert_as_local == "sibling" or (insert_as_local == nil and insert_as_global == "sibling")
     local is_open_dir = node.type == "directory" and (node:is_expanded() or node.empty_expanded)
     if use_parent and not is_open_dir then
       local parent = node.get_parent_id and tree:get_node(node:get_parent_id())
@@ -283,43 +282,39 @@ local commands = vim.tbl_extend("force", {}, common_commands, {
     local prompt
     local initial
     if root_prefix ~= "" then
-      prompt = string.format('Create entry inside %s/ (relative path):', root_prefix)
+      prompt = string.format("Create entry inside %s/ (relative path):", root_prefix)
       initial = suffix ~= "" and (suffix .. utils.path_separator) or ""
     else
       prompt = "Create entry (relative to workspace root):"
       initial = default_rel ~= "" and (default_rel .. utils.path_separator) or ""
     end
     with_prompt(prompt, initial, function()
-      fs_actions.create_node(
-        target_dir,
-        function(new_path)
-          if type(callback) == "function" then
-            callback(new_path)
+      fs_actions.create_node(target_dir, function(new_path)
+        if type(callback) == "function" then
+          callback(new_path)
+        end
+        local session = core.state.current
+        if session then
+          local group_id = (folder.extra and folder.extra.group_id)
+            or group_from_path(new_path)
+            or group_from_path(target_dir)
+          local add_to_spine = group_id == "text"
+          local ok = opf_manager.add_manifest_entry(session, new_path, {
+            group = group_id,
+            add_to_spine = add_to_spine,
+          })
+          if not ok then
+            vim.schedule(function()
+              vim.notify(
+                "epubedit: failed to update content.opf for new file " .. (new_path or ""),
+                vim.log.levels.WARN
+              )
+            end)
           end
-          local session = core.state.current
-          if session then
-            local group_id = (folder.extra and folder.extra.group_id)
-              or group_from_path(new_path)
-              or group_from_path(target_dir)
-            local add_to_spine = group_id == "text"
-            local ok = opf_manager.add_manifest_entry(session, new_path, {
-              group = group_id,
-              add_to_spine = add_to_spine,
-            })
-            if not ok then
-              vim.schedule(function()
-                vim.notify(
-                  "epubedit: failed to update content.opf for new file " .. (new_path or ""),
-                  vim.log.levels.WARN
-                )
-              end)
-            end
-          end
-          state.dirty = true
-          manager.refresh(state.name)
-        end,
-        root_abs or false
-      )
+        end
+        state.dirty = true
+        manager.refresh(state.name)
+      end, root_abs or false)
     end)
   end,
 })
@@ -376,12 +371,7 @@ end
 
 local function build_nodes(session)
   local epub_config = require("epubedit").get_config()
-  local builder_opts = vim.tbl_deep_extend(
-    "force",
-    {},
-    epub_config.neo_tree or {},
-    M.source_config or {}
-  )
+  local builder_opts = vim.tbl_deep_extend("force", {}, epub_config.neo_tree or {}, M.source_config or {})
 
   local ok, result = pcall(opf_view.build, session, builder_opts)
   if not ok then

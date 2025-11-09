@@ -147,8 +147,7 @@ function M.rename_manifest_entry(session, old_path, new_path)
   end
 
   local escaped_old = vim.pesc(target_item.href)
-  local updated, replacements =
-    content:gsub('href="' .. escaped_old .. '"', 'href="' .. new_href .. '"', 1)
+  local updated, replacements = content:gsub('href="' .. escaped_old .. '"', 'href="' .. new_href .. '"', 1)
   if replacements == 0 then
     return false, "href not found in OPF"
   end

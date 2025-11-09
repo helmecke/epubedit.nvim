@@ -64,7 +64,9 @@ local GROUP_DEFS = {
       if media:match("opentype") or media:match("truetype") then
         return true
       end
-      return media == "application/font-woff" or media == "application/x-font-ttf" or media == "application/vnd.ms-opentype"
+      return media == "application/font-woff"
+        or media == "application/x-font-ttf"
+        or media == "application/vnd.ms-opentype"
     end,
   },
   audio = {

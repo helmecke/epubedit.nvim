@@ -46,6 +46,8 @@ require("neo-tree").setup({
 After `:EpubEditOpen`, the plugin automatically opens and focuses Neo-tree’s `epubedit` source (as long as neo-tree is installed and the source is registered in your `sources` list) so you can see the OPF spine followed by manifest resources grouped by media type. You can still trigger `:Neotree source=epubedit` manually if you close it. The pane refreshes automatically after `:EpubEditOpen`, `:EpubEditSave`, or when the workspace is cleaned up, and it closes again after `:EpubEditSave`/cleanup so you are not left with a stale tree. When no session is active, the source displays a helpful placeholder instead of throwing errors. Renaming or moving files inside the `epubedit` source updates the manifest `href` inside the OPF and immediately refreshes the tree so the new location is reflected everywhere. File nodes mimic Sigil’s book browser by showing OPF-relative paths (e.g., `OEBPS/Text/Section0001.xhtml`), making it easy to correlate entries with the underlying archive, and the move dialog only asks for the portion after the OPF root (e.g., everything after `OEBPS/`) so the root directory itself stays intact.
 Grouping mirrors Sigil’s “Text / Styles / Images / Fonts / Audio / Video / Misc” structure, and you can rename/reorder those sections via `neo_tree.group_labels` and `neo_tree.group_order`.
 
+Tip: launching Neovim with an EPUB file (`nvim book.epub`) automatically hands the buffer off to `:EpubEditOpen`, so you can jump straight into the unpacked workspace without running the command manually.
+
 ### Commands
 
 - `:EpubEditOpen [path]` – Unpack an EPUB into a workspace.

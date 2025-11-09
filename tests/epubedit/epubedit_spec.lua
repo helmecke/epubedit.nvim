@@ -124,4 +124,21 @@ describe("epubedit workflow", function()
     assert.are.equal(0, vim.fn.isdirectory(workspace))
     assert.are.equal(initial_cwd, vim.fn.getcwd())
   end)
+
+  it("auto-opens an EPUB when read via BufReadCmd", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_name(buf, sample_epub)
+    vim.api.nvim_set_current_buf(buf)
+    vim.api.nvim_exec_autocmds("BufReadCmd", {
+      pattern = sample_epub,
+      buffer = buf,
+      modeline = false,
+    })
+    vim.wait(1000, function()
+      return core.state.current ~= nil
+    end, 20)
+    assert.is_not_nil(core.state.current)
+    assert.are.equal(vim.fn.fnamemodify(sample_epub, ":p"), core.state.current.source)
+    core.close(epubedit.get_config())
+  end)
 end)

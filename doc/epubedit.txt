@@ -120,5 +120,9 @@ placeholder message. Grouping mirrors Sigil’s “Text / Styles / Images / Font
 Audio / Video / Misc” structure; adjust labels or ordering by overriding
 |epubedit-config| `neo_tree.group_labels` / `neo_tree.group_order`.
 
+Tip: opening Neovim directly on an EPUB file (e.g. `nvim book.epub`) invokes
+`:EpubEditOpen` automatically; the temporary buffer is closed and the EPUB is
+immediately unpacked into a workspace.
+
 ============================================================================== 
 vim:tw=78:ts=8:ft=help:norl:

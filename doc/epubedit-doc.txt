@@ -1,4 +1,4 @@
-*epubedit-doc.txt*      For Neovim >= 0.9.4      Last change: 2025 November 08
+*epubedit-doc.txt*      For Neovim >= 0.9.4      Last change: 2025 November 09
 
 ==============================================================================
 Table of Contents                             *epubedit-doc-table-of-contents*
@@ -85,6 +85,10 @@ root (e.g., everything after `OEBPS/`) so the root directory itself stays
 intact. Grouping mirrors Sigil’s "Text / Styles / Images / Fonts / Audio /
 Video / Misc" structure, and you can rename/reorder those sections via
 `neo_tree.group_labels` and `neo_tree.group_order`.
+
+Tip: launching Neovim with an EPUB file (`nvim book.epub`) automatically hands
+the buffer off to `:EpubEditOpen`, so you can jump straight into the unpacked
+workspace without running the command manually.
 
 
 COMMANDS ~

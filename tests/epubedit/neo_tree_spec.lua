@@ -3,7 +3,6 @@ local core = require("epubedit.module")
 
 local stub = require("luassert.stub")
 local utils = require("neo-tree.utils")
-local opf_manager = require("epubedit.opf_manager")
 local match = require("luassert.match")
 
 local manager = require("neo-tree.sources.manager")
@@ -14,6 +13,17 @@ local inputs = require("neo-tree.ui.inputs")
 
 local sample_epub = vim.fn.fnamemodify("tests/fixtures/sample.epub", ":p")
 local sample_epub3 = vim.fn.fnamemodify("tests/fixtures/sample-epub3.epub", ":p")
+
+local function read_spine_ids(opf_path)
+  local ids = {}
+  for _, line in ipairs(vim.fn.readfile(opf_path)) do
+    local idref = line:match('idref="([^"]+)"')
+    if idref then
+      table.insert(ids, idref)
+    end
+  end
+  return ids
+end
 
 local neotree_ready = false
 local original_show_nodes = renderer.show_nodes
@@ -276,6 +286,41 @@ describe("neo-tree source", function()
     assert.is_nil(opf_content:match('<itemref idref="nav%-new%.xhtml"'))
     create_stub:revert()
     input_stub:revert()
+    core.cleanup(epubedit.get_config())
+  end)
+
+  it("reorders the spine when moving Text entries up or down", function()
+    local ok, err = core.open(sample_epub3, epubedit.get_config())
+    assert(ok, err or "failed to open EPUB3")
+    collect_nodes()
+    local state = manager.get_state("epubedit")
+    local session = core.state.current
+    local section_path = vim.fn.fnamemodify(session.workspace .. "/OEBPS/Text/Section0001.xhtml", ":p")
+    local nav_path = vim.fn.fnamemodify(session.workspace .. "/OEBPS/Text/nav.xhtml", ":p")
+    state.tree = {
+      get_node = function()
+        return {
+          path = section_path,
+          type = "file",
+        }
+      end,
+    }
+    local before = read_spine_ids(session.opf)
+    assert.same({ "Section0001.xhtml", "nav.xhtml" }, before)
+    state.commands.text_move_down(state)
+    local after = read_spine_ids(session.opf)
+    assert.same({ "nav.xhtml", "Section0001.xhtml" }, after)
+    state.tree = {
+      get_node = function()
+        return {
+          path = section_path,
+          type = "file",
+        }
+      end,
+    }
+    state.commands.text_move_up(state)
+    local restored = read_spine_ids(session.opf)
+    assert.same(before, restored)
     core.cleanup(epubedit.get_config())
   end)
 end)

@@ -124,5 +124,8 @@ Tip: opening Neovim directly on an EPUB file (e.g. `nvim book.epub`) invokes
 `:EpubEditOpen` automatically; the temporary buffer is closed and the EPUB is
 immediately unpacked into a workspace.
 
+Inside the Text group, pressing `J`/`K` moves the selected entry down or up in
+the OPF spine so the reading order stays in sync with your tree edits.
+
 ============================================================================== 
 vim:tw=78:ts=8:ft=help:norl:

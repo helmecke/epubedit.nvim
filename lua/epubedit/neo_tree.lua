@@ -333,6 +333,48 @@ local commands = vim.tbl_extend("force", {}, common_commands, {
       end, root_abs or false)
     end)
   end,
+  text_move_up = function(state)
+    local node = state.tree and state.tree:get_node()
+    if not node or node.type ~= "file" then
+      return
+    end
+    if group_from_path(node.path) ~= "text" then
+      return
+    end
+    local session = core.state.current
+    if not session then
+      return
+    end
+    local ok, err = opf_manager.reorder_spine(session, node.path, -1)
+    if not ok then
+      if err then
+        vim.notify("epubedit: " .. err, vim.log.levels.WARN)
+      end
+      return
+    end
+    manager.refresh(state.name)
+  end,
+  text_move_down = function(state)
+    local node = state.tree and state.tree:get_node()
+    if not node or node.type ~= "file" then
+      return
+    end
+    if group_from_path(node.path) ~= "text" then
+      return
+    end
+    local session = core.state.current
+    if not session then
+      return
+    end
+    local ok, err = opf_manager.reorder_spine(session, node.path, 1)
+    if not ok then
+      if err then
+        vim.notify("epubedit: " .. err, vim.log.levels.WARN)
+      end
+      return
+    end
+    manager.refresh(state.name)
+  end,
 })
 
 local M = {
@@ -343,6 +385,10 @@ local M = {
   default_config = {
     window = {
       position = "left",
+      mappings = {
+        ["K"] = "text_move_up",
+        ["J"] = "text_move_down",
+      },
     },
     group_order = opf_view.DEFAULT_GROUP_ORDER,
     group_labels = vim.deepcopy(default_group_labels),

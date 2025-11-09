@@ -258,4 +258,110 @@ function M.add_manifest_entry(session, file_path, opts)
   return true, href
 end
 
+local function reorder_spine_entries(lines, spine_start, entries)
+  local new_lines = {}
+  local inserted = false
+  for idx, line in ipairs(lines) do
+    local in_spine_block = spine_start and idx > spine_start
+    if in_spine_block and line:find("<itemref") then
+      -- skip old entry; new ones inserted later
+    else
+      table.insert(new_lines, line)
+      if not inserted and spine_start and idx == spine_start then
+        for _, entry in ipairs(entries) do
+          table.insert(new_lines, entry.line)
+        end
+        inserted = true
+      end
+    end
+  end
+  return new_lines
+end
+
+function M.reorder_spine(session, file_path, direction)
+  direction = direction or 0
+  if direction == 0 then
+    return true
+  end
+  local opf_path = session and session.opf
+  if not opf_path then
+    return false, "no active OPF"
+  end
+  local parsed, err = opf_parser.parse(opf_path)
+  if not parsed then
+    return false, err
+  end
+  local base_dir = parsed.base_dir or (fn.fnamemodify(opf_path, ":h") .. path_sep)
+  local normalized = normalize_path(file_path)
+  if not normalized then
+    return false, "invalid path"
+  end
+  local href = rel_href(base_dir, normalized)
+  local manifest = parsed.manifest or {}
+  local target_id
+  for id, item in pairs(manifest) do
+    if item.href == href then
+      target_id = id
+      break
+    end
+  end
+  if not target_id then
+    return false, "file not found in manifest"
+  end
+
+  local lines = fn.readfile(opf_path)
+  local spine_start, spine_end
+  local spine_entries = {}
+  for idx, line in ipairs(lines) do
+    if not spine_start and line:find("<spine") then
+      spine_start = idx
+    elseif spine_start and not spine_end and line:find("</spine") then
+      spine_end = idx
+      break
+    end
+  end
+
+  if not spine_start or not spine_end then
+    return false, "spine section missing"
+  end
+
+  for idx = spine_start + 1, spine_end - 1 do
+    local line = lines[idx]
+    local idref = line:match('idref="([^"]+)"')
+    if idref then
+      table.insert(spine_entries, {
+        id = idref,
+        line = line,
+      })
+    end
+  end
+
+  local target_pos
+  for i, entry in ipairs(spine_entries) do
+    if entry.id == target_id then
+      target_pos = i
+      break
+    end
+  end
+
+  if not target_pos then
+    return false, "file not referenced by spine"
+  end
+
+  local new_pos = target_pos + (direction > 0 and 1 or -1)
+  if new_pos < 1 or new_pos > #spine_entries then
+    return false, "cannot move further"
+  end
+
+  local entry = table.remove(spine_entries, target_pos)
+  table.insert(spine_entries, new_pos, entry)
+
+  local new_lines = reorder_spine_entries(lines, spine_start, spine_entries)
+  local ok_write, write_err = write_file(opf_path, table.concat(new_lines, "\n"))
+  if not ok_write then
+    return false, write_err
+  end
+  return true
+end
+
 return M

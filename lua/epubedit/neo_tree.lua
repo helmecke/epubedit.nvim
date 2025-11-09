@@ -283,10 +283,26 @@ local commands = vim.tbl_extend("force", {}, common_commands, {
     local initial
     if root_prefix ~= "" then
       prompt = string.format("Create entry inside %s/ (relative path):", root_prefix)
-      initial = suffix ~= "" and (suffix .. utils.path_separator) or ""
+      if suffix ~= "" then
+        local trimmed = suffix:gsub(utils.path_separator .. "$", "")
+        if trimmed ~= "" then
+          trimmed = trimmed .. utils.path_separator
+        end
+        initial = trimmed
+      else
+        initial = ""
+      end
     else
       prompt = "Create entry (relative to workspace root):"
-      initial = default_rel ~= "" and (default_rel .. utils.path_separator) or ""
+      if default_rel ~= "" then
+        local trimmed = default_rel:gsub(utils.path_separator .. "$", "")
+        if trimmed ~= "" then
+          trimmed = trimmed .. utils.path_separator
+        end
+        initial = trimmed
+      else
+        initial = ""
+      end
     end
     with_prompt(prompt, initial, function()
       fs_actions.create_node(target_dir, function(new_path)

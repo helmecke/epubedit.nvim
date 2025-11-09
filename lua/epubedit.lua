@@ -96,6 +96,23 @@ function M.close()
   return ok
 end
 
+function M._auto_open(path, bufnr)
+  if not path or path == "" then
+    return
+  end
+  local target = vim.fn.fnamemodify(path, ":p")
+  local stat = vim.loop.fs_stat(target)
+  if not stat or stat.type ~= "file" then
+    return
+  end
+  vim.schedule(function()
+    if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+      pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+    end
+    vim.cmd("silent! EpubEditOpen " .. vim.fn.fnameescape(target))
+  end)
+end
+
 -- ensure internal module has defaults even before setup() is called
 module.configure(M.config)
 

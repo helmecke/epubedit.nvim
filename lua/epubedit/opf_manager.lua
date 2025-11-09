@@ -163,20 +163,26 @@ end
 local function unique_id(existing, base)
   local candidate = base
   local counter = 1
+  local name, ext = candidate:match("^(.*)(%.[^%.]+)$")
+  if not name then
+    name = candidate
+    ext = ""
+  end
   while existing[candidate] do
-    candidate = string.format("%s-%d", base, counter)
+    candidate = string.format("%s-%d%s", name, counter, ext)
     counter = counter + 1
   end
   return candidate
 end
 
-local function sanitize_id(href, group)
-  local stem = fn.fnamemodify(href, ":t:r")
-  stem = (stem ~= "" and stem or "item"):gsub("[^%w_-]", "-")
-  if group and group ~= "" then
-    stem = group .. "-" .. stem
+local function sanitize_id(href)
+  local base = fn.fnamemodify(href, ":t")
+  if base == "" then
+    base = "item"
   end
-  return "epubedit-" .. stem
+  -- strip directory separators just in case
+  base = base:gsub("[/\\]", "")
+  return base
 end
 
 function M.add_manifest_entry(session, file_path, opts)

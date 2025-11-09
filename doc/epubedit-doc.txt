@@ -82,9 +82,11 @@ mimic Sigil’s book browser by showing OPF-relative paths (e.g.,
 `OEBPS/Text/Section0001.xhtml`), making it easy to correlate entries with the
 underlying archive, and the move dialog only asks for the portion after the OPF
 root (e.g., everything after `OEBPS/`) so the root directory itself stays
-intact. Grouping mirrors Sigil’s "Text / Styles / Images / Fonts / Audio /
-Video / Misc" structure, and you can rename/reorder those sections via
-`neo_tree.group_labels` and `neo_tree.group_order`.
+intact. While focused on a Text entry, press `J`/`K` to move it down/up and the
+OPF spine order is rewritten to match. Grouping mirrors Sigil’s "Text /
+Styles / Images / Fonts / Audio / Video / Misc" structure, and you can
+rename/reorder those sections via `neo_tree.group_labels` and
+`neo_tree.group_order`.
 
 Tip: launching Neovim with an EPUB file (`nvim book.epub`) automatically hands
 the buffer off to `:EpubEditOpen`, so you can jump straight into the unpacked

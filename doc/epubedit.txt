@@ -44,6 +44,14 @@ Requirements~
     and removes the temporary workspace unless |epubedit-config|
     `preserve_workspace` is `true`.
 
+:EpubEditCheck~
+    Validate the active workspace by packaging it and running `epubcheck`
+    followed by `xmllint --noout` on OPF/XHTML files. Diagnostics land in the
+    quickfix list (prefixed with the tool that reported them). When both tools
+    report a clean run, the quickfix list is closed and an info notification is
+    shown instead. Configure or disable validators via
+    |epubedit-config| `validators`.
+
 ==============================================================================
 3. Configuration                                                *epubedit-config*
 
@@ -57,12 +65,20 @@ Use |lua| to configure the plugin:
       preserve_workspace = false, -- keep workspaces after saving
       prompt_overwrite = true,    -- confirm before replacing the source EPUB
       neo_tree = {
-        media_order = {
-          "application/xhtml+xml",
-          "text/html",
-          "text/css",
-          "application/x-dtbncx+xml",
+        group_order = { "text", "styles", "images", "fonts", "audio", "video", "misc" },
+        group_labels = {
+          text = "Text",
+          styles = "Styles",
+          images = "Images",
+          fonts = "Fonts",
+          audio = "Audio",
+          video = "Video",
+          misc = "Misc",
         },
+      },
+      validators = {
+        epubcheck = "epubcheck", -- or { "java", "-jar", "/path/epubcheck.jar" }
+        xmllint = "xmllint",     -- set to nil to skip XML linting
       },
     })
 <
@@ -73,6 +89,11 @@ creates unique sub-directories inside the provided path. Set
 Use the `neo_tree` table to tweak how manifest resources are grouped inside the
 neo-tree source (see |epubedit-neotree|). `group_order` controls section order
 while `group_labels` lets you rename the headings.
+
+The `validators` table controls |:EpubEditCheck|. Provide either a string
+executable or a `{ cmd, args... }` list for each tool. Set any entry to `nil`
+to skip that validator entirely. Missing binaries produce warnings but do not
+abort the command.
 
 ==============================================================================
 4. Health Check                                                 *epubedit-health*

@@ -53,6 +53,7 @@ Tip: launching Neovim with an EPUB file (`nvim book.epub`) automatically hands t
 - `:EpubEditOpen [path]` – Unpack an EPUB into a workspace.
 - `:EpubEditSave [path]` – Repack the active workspace. Optional `path` writes to a different location; otherwise the original file is replaced (with confirmation by default).
 - `:EpubEditClose` – Abandon the current workspace without saving, clean up the temp directory, and restore the previous working directory.
+- `:EpubEditCheck` – Run epubcheck and `xmllint --noout` against the active workspace, surfacing diagnostics in the quickfix list.
 
 ### Health Check
 
@@ -79,10 +80,16 @@ require("epubedit").setup({
       misc = "Misc",
     },
   },
+  validators = {
+    epubcheck = "epubcheck", -- or { "java", "-jar", "/path/epubcheck.jar" }
+    xmllint = "xmllint",    -- set to nil to skip XML linting
+  },
 })
 ```
 
 `workspace_root` defaults to the OS temp directory. When set, the plugin creates uniquely named sub-directories inside the provided path. The `neo_tree` section lets you override the Sigil-style grouping order/labels used inside the neo-tree source.
+
+The `validators` table configures external tools used by `:EpubEditCheck`. Provide either a string executable or a list of `{ command, args... }`. Leave a value `nil` to skip that validator.
 
 ## Development
 

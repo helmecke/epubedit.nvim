@@ -22,6 +22,12 @@ end, {
   desc = "Close the active EPUB workspace without saving",
 })
 
+vim.api.nvim_create_user_command("EpubEditCheck", function()
+  epubedit.check()
+end, {
+  desc = "Validate the active EPUB workspace with epubcheck/xmllint",
+})
+
 local auto_group = vim.api.nvim_create_augroup("EpubEditAutoOpen", { clear = true })
 
 vim.api.nvim_create_autocmd("BufReadCmd", {

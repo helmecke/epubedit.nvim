@@ -54,6 +54,163 @@ local function read_file(path)
   return content
 end
 
+local function normalize_command_value(cmd)
+  if type(cmd) == "table" then
+    if #cmd == 0 then
+      return nil
+    end
+    local copy = {}
+    for _, value in ipairs(cmd) do
+      table.insert(copy, tostring(value))
+    end
+    return copy
+  end
+  if type(cmd) == "string" then
+    cmd = vim.trim(cmd)
+    if cmd == "" then
+      return nil
+    end
+    return { cmd }
+  end
+  return nil
+end
+
+local function normalize_separators(value)
+  if not value then
+    return nil
+  end
+  return value:gsub("\\", "/")
+end
+
+local function resolve_workspace_path(raw_path, session)
+  if not raw_path or raw_path == "" or not session or not session.workspace or session.workspace == "" then
+    return nil
+  end
+  local workspace = session.workspace
+  local trimmed = vim.trim(raw_path:gsub("^file://", ""))
+  if trimmed == "" then
+    return nil
+  end
+  local normalized_sep = normalize_separators(trimmed)
+  local is_absolute = trimmed:match("^/") or trimmed:match("^%a:")
+
+  local function try_candidate(candidate)
+    if not candidate or candidate == "" then
+      return nil
+    end
+    local normalized = normalize_path(candidate)
+    if normalized:sub(1, #workspace) ~= workspace then
+      return nil
+    end
+    return normalized
+  end
+
+  if is_absolute then
+    local resolved = try_candidate(trimmed)
+    if resolved then
+      return resolved
+    end
+  end
+
+  local rel_from_epub = normalized_sep:match("%.epub/(.+)")
+  if rel_from_epub and rel_from_epub ~= "" then
+    local resolved = try_candidate(join_paths(workspace, rel_from_epub))
+    if resolved then
+      return resolved
+    end
+    if session.assets then
+      for _, asset in ipairs(session.assets) do
+        local haystack = normalize_separators(asset)
+        if haystack:sub(-#rel_from_epub) == rel_from_epub then
+          return asset
+        end
+      end
+    end
+  end
+
+  if not is_absolute then
+    local resolved = try_candidate(join_paths(workspace, trimmed))
+    if resolved then
+      return resolved
+    end
+  end
+
+  if session.assets then
+    local tail = normalized_sep:match("([^/]+)$")
+    if tail then
+      tail = tail:lower()
+      for _, asset in ipairs(session.assets) do
+        if normalize_separators(asset):lower():sub(-#tail) == tail then
+          return asset
+        end
+      end
+    end
+  end
+
+  return nil
+end
+
+local function parse_diag_line(line, session)
+  if not line or line == "" then
+    return nil
+  end
+  local stripped = line:match("^%s*[^|]+||%s*(.+)$")
+  if stripped then
+    line = stripped
+  end
+  line = line:gsub("^%[[^%]]+%]%s*", "")
+  local severity
+  if line:find("ERROR", 1, true) then
+    severity = "E"
+  elseif line:find("WARN", 1, true) then
+    severity = "W"
+  end
+
+  local filename, lnum, col, message
+  local candidate, row, column, msg = line:match("^%s*([^:]+)%((%-?%d+),%s*(%-?%d+)%)%s*:%s*(.+)$")
+  if candidate then
+    filename, lnum, col, message = candidate, row, column, msg
+  else
+    candidate, row, column, msg = line:match("^%s*([^:]+):(%d+):(%d+):%s*(.+)$")
+  end
+  if candidate then
+    filename, lnum, col, message = candidate, row, column, msg
+  else
+    candidate, row, msg = line:match("^%s*([^:]+):(%d+):%s*(.+)$")
+    if candidate then
+      filename, lnum, message = candidate, row, msg
+    else
+      local path_hint = line:match("file%s*:?-?%s*([^%s]+)")
+      local row_hint = line:match("line%s*:?-?%s*(%d+)")
+      local col_hint = line:match("column%s*:?-?%s*(%d+)")
+      if path_hint then
+        filename = path_hint
+        lnum = row_hint
+        col = col_hint
+        message = line:match(":%s*(.+)$") or line
+      end
+    end
+  end
+  message = message or line
+
+  if not filename or filename == "" then
+    return nil
+  end
+
+  local resolved = resolve_workspace_path(filename, session)
+  if not resolved then
+    return nil
+  end
+
+  return {
+    filename = resolved,
+    lnum = tonumber(lnum) or 0,
+    col = tonumber(col) or 0,
+    text = message,
+    type = severity,
+  }
+end
+
 local function unique_insert(list, value, seen)
   if not value or value == "" then
     return
@@ -116,6 +273,84 @@ local function run_command(cmd, args, opts)
   return true, table.concat(stdout, "\n")
 end
 
+local function build_quickfix_entries(lines, session, source)
+  local entries = {}
+  for _, line in ipairs(lines or {}) do
+    line = vim.trim(line)
+    if line ~= "" then
+      local parsed = parse_diag_line(line, session)
+      if parsed then
+        parsed.text = string.format("[%s] %s", source, parsed.text)
+        table.insert(entries, parsed)
+      end
+    end
+  end
+  return entries
+end
+
+local function default_validation_runner(command, extra_args, opts)
+  local full_cmd = {}
+  for _, part in ipairs(command or {}) do
+    table.insert(full_cmd, part)
+  end
+  for _, part in ipairs(extra_args or {}) do
+    table.insert(full_cmd, part)
+  end
+  local stdout, stderr = {}, {}
+  local job_id = fn.jobstart(full_cmd, {
+    cwd = opts and opts.cwd or nil,
+    stdout_buffered = true,
+    stderr_buffered = true,
+    on_stdout = function(_, data)
+      if not data then
+        return
+      end
+      for _, line in ipairs(data) do
+        if line ~= "" then
+          table.insert(stdout, line)
+        end
+      end
+    end,
+    on_stderr = function(_, data)
+      if not data then
+        return
+      end
+      for _, line in ipairs(data) do
+        if line ~= "" then
+          table.insert(stderr, line)
+        end
+      end
+    end,
+  })
+
+  if job_id <= 0 then
+    return -1, {}, { string.format("failed to start %s", vim.inspect(full_cmd)) }
+  end
+
+  local status = fn.jobwait({ job_id }, opts and opts.timeout or 60000)[1]
+  if status == -1 then
+    fn.jobstop(job_id)
+    return -1, stdout, { string.format("%s timed out", full_cmd[1] or "validator") }
+  end
+  return status, stdout, stderr
+end
+
+local M = {
+  state = {
+    sessions = {},
+    current = nil,
+  },
+  config = {},
+}
+
+local validation_runner = default_validation_runner
+
+function M._set_validation_runner(fn)
+  local previous = validation_runner
+  validation_runner = fn or default_validation_runner
+  return previous
+end
+
 local function delete_directory(path)
   if not file_exists(path) then
     return true
@@ -148,14 +383,6 @@ local function relative_to(root, relative_path)
   local sanitized = relative_path:gsub("/", path_sep)
   return normalize_path(join_paths(root, sanitized))
 end
-
-local M = {
-  state = {
-    sessions = {},
-    current = nil,
-  },
-  config = {},
-}
 
 local function dependency_status(config)
   local zip_bin = config.zip_bin or "zip"
@@ -310,6 +537,16 @@ local function write_session_buffers(session)
       end)
     end
   end
+end
+
+local function package_workspace(session, config)
+  local tmp = fn.tempname() .. ".epub"
+  local zip_args = { "-X", "-q", "-r", tmp, "." }
+  local ok, err = run_command(config.zip_bin or "zip", zip_args, { cwd = session.workspace })
+  if not ok then
+    return nil, err
+  end
+  return tmp
 end
 
 local function cleanup_session(session, config, opts)
@@ -576,6 +813,127 @@ local function current_session()
     return nil, "No active EPUB session. Run :EpubEditOpen first."
   end
   return session
+end
+
+local function run_epubcheck(session, config, entries, warnings)
+  local validators = config.validators or {}
+  local cmd_parts = normalize_command_value(validators.epubcheck)
+  if not cmd_parts then
+    table.insert(warnings, "epubcheck validator not configured")
+    return false
+  end
+  if fn.executable(cmd_parts[1]) ~= 1 then
+    table.insert(warnings, string.format("epubcheck binary '%s' not found", cmd_parts[1]))
+    return false
+  end
+  local tmp_epub, err = package_workspace(session, config)
+  if not tmp_epub then
+    table.insert(warnings, err or "failed to package workspace for epubcheck")
+    return false
+  end
+  local exit_code, stdout_lines, stderr_lines = validation_runner(cmd_parts, { tmp_epub }, { cwd = session.workspace })
+  uv.fs_unlink(tmp_epub)
+  local combined = {}
+  for _, line in ipairs(stdout_lines or {}) do
+    table.insert(combined, line)
+  end
+  for _, line in ipairs(stderr_lines or {}) do
+    table.insert(combined, line)
+  end
+  local parsed = build_quickfix_entries(combined, session, "epubcheck")
+  vim.list_extend(entries, parsed)
+  if exit_code ~= 0 and #parsed == 0 then
+    table.insert(warnings, string.format("epubcheck exited with status %d", exit_code))
+  end
+  return true
+end
+
+local function is_xml_like(path)
+  local ext = path:match("%.([^%.]+)$")
+  ext = ext and ext:lower() or ""
+  return ext == "xhtml" or ext == "html" or ext == "htm" or ext == "xml" or ext == "opf"
+end
+
+local function run_xmllint(session, config, entries, warnings)
+  local validators = config.validators or {}
+  local cmd_parts = normalize_command_value(validators.xmllint)
+  if not cmd_parts then
+    table.insert(warnings, "xmllint validator not configured")
+    return false
+  end
+  if fn.executable(cmd_parts[1]) ~= 1 then
+    table.insert(warnings, string.format("xmllint binary '%s' not found", cmd_parts[1]))
+    return false
+  end
+  local ran = false
+  for _, asset in ipairs(session.assets or {}) do
+    if is_xml_like(asset) then
+      ran = true
+      local exit_code, stdout_lines, stderr_lines = validation_runner(cmd_parts, { "--noout", asset }, { cwd = session.workspace })
+      if exit_code ~= 0 then
+        local combined = {}
+        for _, line in ipairs(stdout_lines or {}) do
+          table.insert(combined, line)
+        end
+        for _, line in ipairs(stderr_lines or {}) do
+          table.insert(combined, line)
+        end
+        if #combined == 0 then
+          table.insert(combined, string.format("%s: xml validation failed", asset))
+        end
+        local parsed = build_quickfix_entries(combined, session, "xmllint")
+        if #parsed == 0 then
+          table.insert(parsed, {
+            filename = asset,
+            lnum = 0,
+            col = 0,
+            text = table.concat(combined, "\n"),
+            type = "E",
+          })
+        end
+        vim.list_extend(entries, parsed)
+      end
+    end
+  end
+  return ran
+end
+
+local function close_quickfix()
+  pcall(vim.cmd, "cclose")
+end
+
+local function open_quickfix(entries)
+  vim.fn.setqflist({}, " ", { title = "EpubEditCheck", items = entries })
+  pcall(vim.cmd, "copen")
+end
+
+function M.check(config)
+  config = config or M.config
+  local session, err = current_session()
+  if not session then
+    return false, err
+  end
+  local entries = {}
+  local warnings = {}
+  local ran = false
+  ran = run_epubcheck(session, config, entries, warnings) or ran
+  ran = run_xmllint(session, config, entries, warnings) or ran
+
+  for _, warning in ipairs(warnings) do
+    vim.notify("epubedit: " .. warning, vim.log.levels.WARN)
+  end
+
+  if not ran then
+    return false, "No validators executed. Configure epubcheck/xmllint."
+  end
+
+  if #entries > 0 then
+    open_quickfix(entries)
+  else
+    close_quickfix()
+    vim.notify("Epub validation succeeded", vim.log.levels.INFO)
+  end
+  return true
 end
 
 return M

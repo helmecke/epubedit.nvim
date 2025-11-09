@@ -7,6 +7,7 @@ local module = require("epubedit.module")
 ---@field preserve_workspace boolean When true, keep workspace directories after saving.
 ---@field prompt_overwrite boolean When true, confirm before overwriting the original EPUB.
 ---@field neo_tree table|nil Neo-tree integration config.
+---@field validators table|nil External validator configuration.
 local defaults = {
   zip_bin = "zip",
   unzip_bin = "unzip",
@@ -24,6 +25,10 @@ local defaults = {
       video = "Video",
       misc = "Misc",
     },
+  },
+  validators = {
+    epubcheck = "epubcheck",
+    xmllint = "xmllint",
   },
 }
 
@@ -111,6 +116,14 @@ function M._auto_open(path, bufnr)
     end
     vim.cmd("silent! EpubEditOpen " .. vim.fn.fnameescape(target))
   end)
+end
+
+function M.check()
+  local ok, err = module.check(M.config)
+  if not ok and err then
+    vim.notify(err, vim.log.levels.ERROR)
+  end
+  return ok
 end
 
 -- ensure internal module has defaults even before setup() is called

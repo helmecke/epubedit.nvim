@@ -67,7 +67,7 @@ function M.parse(opf_path)
     return nil, "Invalid OPF: missing <package>"
   end
 
-  local metadata = find_child(package_node, "metadata") or {}
+  local metadata_node = find_child(package_node, "metadata") or {}
   local manifest = find_child(package_node, "manifest") or {}
   local spine = find_child(package_node, "spine") or {}
 
@@ -97,11 +97,19 @@ function M.parse(opf_path)
     table.insert(resources_by_type[media], item)
   end
 
+  local metadata = {}
   local title = nil
-  for _, child in ipairs(flatten_children(metadata)) do
-    if child._name and child._name:match("title$") then
-      title = text_content(child)
-      break
+  for _, child in ipairs(flatten_children(metadata_node)) do
+    if child._name then
+      local item = {
+        tag = child._name,
+        text = text_content(child),
+        attr = child._attr,
+      }
+      table.insert(metadata, item)
+      if not title and child._name:match("title$") then
+        title = item.text
+      end
     end
   end
 
@@ -110,6 +118,7 @@ function M.parse(opf_path)
 
   return {
     title = title,
+    metadata = metadata,
     manifest = manifest_items,
     spine = spine_items,
     resources = resources_by_type,

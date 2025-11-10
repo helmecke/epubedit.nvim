@@ -28,6 +28,12 @@ end, {
   desc = "Validate the active EPUB workspace with epubcheck/xmllint",
 })
 
+vim.api.nvim_create_user_command("EpubEditMetadata", function()
+  epubedit.metadata()
+end, {
+  desc = "Open the metadata editor for the active EPUB",
+})
+
 local auto_group = vim.api.nvim_create_augroup("EpubEditAutoOpen", { clear = true })
 
 vim.api.nvim_create_autocmd("BufReadCmd", {

@@ -44,6 +44,12 @@ Requirements~
     and removes the temporary workspace unless |epubedit-config|
     `preserve_workspace` is `true`.
 
+:EpubEditMetadata~
+    Open a floating window to edit the `content.opf` metadata. This provides a
+    simple form-based view of the EPUB's title, author, language, and other
+    Dublin Core fields. Press `<CR>` on a line to edit the value, and `<C-s>`
+    to save the changes back to the workspace.
+
 :EpubEditCheck~
     Validate the active workspace by packaging it and running `epubcheck`
     followed by `xmllint --noout` on OPF/XHTML files. Diagnostics land in the

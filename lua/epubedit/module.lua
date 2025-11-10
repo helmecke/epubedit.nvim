@@ -817,6 +817,10 @@ local function current_session()
   return session
 end
 
+function M.get_current_session()
+  return M.state.current
+end
+
 local function run_epubcheck(session, config, entries, warnings)
   local validators = config.validators or {}
   local cmd_parts = normalize_command_value(validators.epubcheck)

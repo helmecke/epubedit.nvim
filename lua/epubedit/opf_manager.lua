@@ -364,4 +364,52 @@ function M.reorder_spine(session, file_path, direction)
   return true
 end
 
+function M.get_metadata(session)
+  if not session or not session.opf then
+    return nil, "no active OPF"
+  end
+  local opf_path = session.opf
+  local parsed, err = opf_parser.parse(opf_path)
+  if not parsed then
+    return nil, err
+  end
+  return parsed.metadata, nil
+end
+
+local function escape_xml(s)
+  s = s:gsub("&", "&amp;")
+  s = s:gsub("<", "&lt;")
+  s = s:gsub(">", "&gt;")
+  s = s:gsub('"', "&quot;")
+  s = s:gsub("'", "&apos;")
+  return s
+end
+
+function M.update_metadata(session, new_metadata)
+  if not session or not session.opf then
+    return false, "no active OPF"
+  end
+  local opf_path = session.opf
+  local content, err = read_file(opf_path)
+  if not content then
+    return false, err
+  end
+
+  for _, item in ipairs(new_metadata) do
+    local pattern = "(<" .. item.tag .. "[^>]*>)([^<]*)(</" .. item.tag .. ">)"
+    local replacement = "%1" .. escape_xml(item.text) .. "%3"
+    local updated_content, num_replacements = content:gsub(pattern, replacement)
+    if num_replacements > 0 then
+      content = updated_content
+    end
+  end
+
+  local ok, write_err = write_file(opf_path, content)
+  if not ok then
+    return false, write_err
+  end
+
+  return true
+end
+
 return M

@@ -62,8 +62,8 @@ describe(":EpubEditCheck", function()
     end)
 
     original_setqflist = stub(vim.fn, "setqflist", function(list, _, opts)
-      if list and #list > 0 then
-        entries = list
+      if opts and opts.items and #opts.items > 0 then
+        entries = opts.items
       end
     end)
 

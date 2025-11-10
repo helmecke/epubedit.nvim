@@ -154,51 +154,47 @@ local function parse_diag_line(line, session)
   if not line or line == "" then
     return nil
   end
-  local stripped = line:match("^%s*[^|]+||%s*(.+)$")
-  if stripped then
-    line = stripped
-  end
-  line = line:gsub("^%[[^%]]+%]%s*", "")
   local severity
-  if line:find("ERROR", 1, true) then
+  if line:find("ERROR", 1, true) or line:find("error", 1, true) then
     severity = "E"
-  elseif line:find("WARN", 1, true) then
+  elseif line:find("WARN", 1, true) or line:find("warning", 1, true) then
     severity = "W"
   end
 
   local filename, lnum, col, message
-  local candidate, row, column, msg = line:match("^%s*([^:]+)%((%-?%d+),%s*(%-?%d+)%)%s*:%s*(.+)$")
-  if candidate then
-    filename, lnum, col, message = candidate, row, column, msg
+  -- epubcheck format
+  local code, path, row, column, msg =
+    line:match("^ERROR%(([^)]+)%)%s*:%s*(.-)%((%-?%d+),%s*(%-?%d+)%)%s*:%s*(.+)$")
+  if code then
+    filename, lnum, col, message = path, row, column, msg
   else
-    candidate, row, column, msg = line:match("^%s*([^:]+):(%d+):(%d+):%s*(.+)$")
-  end
-  if candidate then
-    filename, lnum, col, message = candidate, row, column, msg
-  else
-    candidate, row, msg = line:match("^%s*([^:]+):(%d+):%s*(.+)$")
-    if candidate then
-      filename, lnum, message = candidate, row, msg
+    -- generic file:line:col: message format
+    path, row, column, msg = line:match("^([^:]+):(%d+):(%d+): (.+)$")
+    if path then
+      filename, lnum, col, message = path, row, column, msg
     else
-      local path_hint = line:match("file%s*:?-?%s*([^%s]+)")
-      local row_hint = line:match("line%s*:?-?%s*(%d+)")
-      local col_hint = line:match("column%s*:?-?%s*(%d+)")
-      if path_hint then
-        filename = path_hint
-        lnum = row_hint
-        col = col_hint
-        message = line:match(":%s*(.+)$") or line
+      -- generic file:line: message format (for xmllint)
+      path, row, msg = line:match("^([^:]+):(%d+): (.+)$")
+      if path then
+        filename, lnum, col, message = path, row, "0", msg
       end
     end
   end
-  message = message or line
 
-  if not filename or filename == "" then
+  if not filename then
     return nil
   end
 
   local resolved = resolve_workspace_path(filename, session)
   if not resolved then
+    if filename:match("%.epub$") and tonumber(lnum) == -1 then
+      resolved = session.workspace
+    else
+      return nil
+    end
+  end
+
+  if resolved == session.workspace then
     return nil
   end
 
@@ -280,8 +276,14 @@ local function build_quickfix_entries(lines, session, source)
     if line ~= "" then
       local parsed = parse_diag_line(line, session)
       if parsed then
-        parsed.text = string.format("[%s] %s", source, parsed.text)
-        table.insert(entries, parsed)
+        local message = string.format("[%s] %s", source, parsed.text)
+        table.insert(entries, {
+          filename = parsed.filename,
+          lnum = parsed.lnum,
+          col = parsed.col,
+          text = message,
+          type = parsed.type,
+        })
       end
     end
   end

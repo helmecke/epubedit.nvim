@@ -37,7 +37,7 @@ local function handle_close()
     close_editor()
   elseif choice == 2 then -- No
     close_editor()
-  -- else (Cancel) do nothing, keep popup open
+    -- else (Cancel) do nothing, keep popup open
   end
 end
 

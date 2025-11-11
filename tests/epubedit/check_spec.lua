@@ -148,12 +148,14 @@ describe(":EpubEditCheck", function()
     local session = prepare_workspace(sample_epub3)
     module._set_validation_runner(function(command)
       if command[1] == "fake-epubcheck" then
-        return 1, {
-          "Validating using EPUB version 3.3 rules.",
-          "ERROR(PKG-006): /tmp/nvim.tmp/1.epub(-1,-1): Mimetype file entry is missing or is not the first file in the archive.",
-          'ERROR(RSC-005): /tmp/nvim.tmp/1.epub/OEBPS/Text/Section0001.xhtml(6,10): Error while parsing file: Element "title" must not be empty.',
-          "Check finished with errors",
-        }, {}
+        return 1,
+          {
+            "Validating using EPUB version 3.3 rules.",
+            "ERROR(PKG-006): /tmp/nvim.tmp/1.epub(-1,-1): Mimetype file entry is missing or is not the first file in the archive.",
+            'ERROR(RSC-005): /tmp/nvim.tmp/1.epub/OEBPS/Text/Section0001.xhtml(6,10): Error while parsing file: Element "title" must not be empty.',
+            "Check finished with errors",
+          },
+          {}
       end
       if command[1] == "fake-xmllint" then
         return 0, {}, {}
@@ -169,9 +171,6 @@ describe(":EpubEditCheck", function()
     assert.are.equal(10, entry.col)
     local expected_path = vim.fn.fnamemodify(session.workspace .. "/OEBPS/Text/Section0001.xhtml", ":p")
     assert.are.equal(expected_path, entry.filename)
-    assert.are.equal(
-      "[epubcheck] Error while parsing file: Element \"title\" must not be empty.",
-      entry.text
-    )
+    assert.are.equal('[epubcheck] Error while parsing file: Element "title" must not be empty.', entry.text)
   end)
 end)

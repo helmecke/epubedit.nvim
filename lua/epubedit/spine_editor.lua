@@ -127,7 +127,10 @@ function M.open(session)
   vim.api.nvim_set_current_buf(state.bufnr)
 
   -- Show help message
-  vim.notify("Spine editor: Reorder lines to change reading order. Save with :w or <C-s>, quit with q", vim.log.levels.INFO)
+  vim.notify(
+    "Spine editor: Reorder lines to change reading order. Save with :w or <C-s>, quit with q",
+    vim.log.levels.INFO
+  )
 end
 
 return M

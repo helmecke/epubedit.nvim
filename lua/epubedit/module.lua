@@ -163,8 +163,7 @@ local function parse_diag_line(line, session)
 
   local filename, lnum, col, message
   -- epubcheck format
-  local code, path, row, column, msg =
-    line:match("^ERROR%(([^)]+)%)%s*:%s*(.-)%((%-?%d+),%s*(%-?%d+)%)%s*:%s*(.+)$")
+  local code, path, row, column, msg = line:match("^ERROR%(([^)]+)%)%s*:%s*(.-)%((%-?%d+),%s*(%-?%d+)%)%s*:%s*(.+)$")
   if code then
     filename, lnum, col, message = path, row, column, msg
   else
@@ -881,7 +880,11 @@ local function run_xmllint(session, config, entries, warnings)
   for _, asset in ipairs(session.assets or {}) do
     if is_xml_like(asset) then
       ran = true
-      local exit_code, stdout_lines, stderr_lines = validation_runner(cmd_parts, { "--noout", asset }, { cwd = session.workspace })
+      local exit_code, stdout_lines, stderr_lines = validation_runner(
+        cmd_parts,
+        { "--noout", asset },
+        { cwd = session.workspace }
+      )
       if exit_code ~= 0 then
         local combined = {}
         for _, line in ipairs(stdout_lines or {}) do

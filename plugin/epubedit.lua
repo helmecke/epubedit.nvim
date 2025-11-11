@@ -34,6 +34,12 @@ end, {
   desc = "Open the metadata editor for the active EPUB",
 })
 
+vim.api.nvim_create_user_command("EpubEditSpine", function()
+  epubedit.spine()
+end, {
+  desc = "Open the spine editor to manage reading order",
+})
+
 local auto_group = vim.api.nvim_create_augroup("EpubEditAutoOpen", { clear = true })
 
 vim.api.nvim_create_autocmd("BufReadCmd", {

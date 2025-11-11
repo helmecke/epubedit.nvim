@@ -50,6 +50,14 @@ Requirements~
     Dublin Core fields. Press `<CR>` on a line to edit the value, and `<C-s>`
     to save the changes back to the workspace.
 
+:EpubEditSpine~
+    Open a special buffer displaying the EPUB's reading order (spine). Each
+    line shows the `href` of a content document in the order readers will
+    encounter them. Reorder lines by cutting and pasting (dd/p), moving blocks
+    with visual mode, or any other Neovim editing commands. Save with `:w` or
+    `<C-s>` to write the new order back to the `content.opf` file. Press `q`
+    to close the editor without saving.
+
 :EpubEditCheck~
     Validate the active workspace by packaging it and running `epubcheck`
     followed by `xmllint --noout` on OPF/XHTML files. Diagnostics land in the

@@ -136,6 +136,16 @@ function M.metadata()
   metadata_editor.open(session)
 end
 
+function M.spine()
+  local spine_editor = require("epubedit.spine_editor")
+  local session = module.get_current_session()
+  if not session then
+    vim.notify("No active EPUB session.", vim.log.levels.ERROR)
+    return
+  end
+  spine_editor.open(session)
+end
+
 -- ensure internal module has defaults even before setup() is called
 module.configure(M.config)
 

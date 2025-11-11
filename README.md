@@ -56,11 +56,16 @@ Tip: launching Neovim with an EPUB file (`nvim book.epub`) automatically hands t
 - `:EpubEditSave [path]` – Repack the active workspace. Optional `path` writes to a different location; otherwise the original file is replaced (with confirmation by default).
 - `:EpubEditClose` – Abandon the current workspace without saving, clean up the temp directory, and restore the previous working directory.
 - `:EpubEditMetadata` – Open a floating window to edit the EPUB's metadata (title, author, etc.).
+- `:EpubEditSpine` – Open a buffer to edit the EPUB's reading order (spine).
 - `:EpubEditCheck` – Run epubcheck and `xmllint --noout` against the active workspace, surfacing diagnostics in the quickfix list.
 
 ### Metadata Editor
 
 Run `:EpubEditMetadata` to open a floating window for editing the `content.opf` metadata. This provides a simple form-based view of the EPUB's title, author, language, and other Dublin Core fields. Press `<CR>` on a line to edit the value, and `<C-s>` to save the changes back to the workspace.
+
+### Spine Editor
+
+Run `:EpubEditSpine` to open a special buffer displaying the EPUB's reading order (spine). Each line shows the `href` of a content document in the order readers will encounter them. Reorder lines by cutting and pasting (dd/p), moving blocks with visual mode, or any other Neovim editing commands. Save with `:w` or `<C-s>` to write the new order back to the `content.opf` file. Press `q` to close the editor without saving.
 
 ### Health Check
 

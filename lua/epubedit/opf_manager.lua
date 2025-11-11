@@ -412,4 +412,79 @@ function M.update_metadata(session, new_metadata)
   return true
 end
 
+---Get spine items (ordered list of content documents)
+---@param session table
+---@return table|nil spine items with id, href, media_type
+---@return string|nil error message
+function M.get_spine(session)
+  if not session or not session.opf then
+    return nil, "no active OPF"
+  end
+  local opf_path = session.opf
+  local parsed, err = opf_parser.parse(opf_path)
+  if not parsed then
+    return nil, err
+  end
+  return parsed.spine, nil
+end
+
+---Set spine order by providing ordered list of manifest items
+---@param session table
+---@param spine_items table ordered list of items with id field
+---@return boolean success
+---@return string|nil error message
+function M.set_spine(session, spine_items)
+  if not session or not session.opf then
+    return false, "no active OPF"
+  end
+  local opf_path = session.opf
+
+  -- Read current OPF content
+  local lines = fn.readfile(opf_path)
+
+  -- Find spine section boundaries
+  local spine_start, spine_end
+  for idx, line in ipairs(lines) do
+    if not spine_start and line:find("<spine") then
+      spine_start = idx
+    elseif spine_start and not spine_end and line:find("</spine") then
+      spine_end = idx
+      break
+    end
+  end
+
+  if not spine_start or not spine_end then
+    return false, "spine section missing"
+  end
+
+  -- Build new lines with updated spine
+  local new_lines = {}
+  local indent = "    "
+
+  -- Copy lines before spine content
+  for i = 1, spine_start do
+    table.insert(new_lines, lines[i])
+  end
+
+  -- Insert new spine entries
+  for _, item in ipairs(spine_items) do
+    if item.id then
+      table.insert(new_lines, string.format('%s<itemref idref="%s"/>', indent, item.id))
+    end
+  end
+
+  -- Copy lines after spine content
+  for i = spine_end, #lines do
+    table.insert(new_lines, lines[i])
+  end
+
+  -- Write updated content
+  local ok, write_err = write_file(opf_path, table.concat(new_lines, "\n"))
+  if not ok then
+    return false, write_err
+  end
+
+  return true
+end
+
 return M

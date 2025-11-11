@@ -107,3 +107,17 @@ The system MUST provide a user interface to edit the core metadata of the EPUB f
 - **WHEN** the `content.opf` file is missing optional metadata fields (e.g., publisher).
 - **THEN** the editor displays the fields as empty and allows the user to add values.
 
+### Requirement: Spine Editing
+The system SHALL provide a user command to edit the EPUB spine (reading order).
+
+#### Scenario: Edit spine
+- **GIVEN** an open EPUB file
+- **WHEN** the user runs the `:EpubEditSpine` command
+- **THEN** a new buffer is opened with the current spine order.
+
+#### Scenario: Reorder spine
+- **GIVEN** the spine editor buffer is open
+- **WHEN** the user reorders the lines in the buffer
+- **AND** saves the buffer
+- **THEN** the new spine order is written to the OPF file.
+

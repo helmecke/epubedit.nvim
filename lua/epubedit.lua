@@ -146,6 +146,66 @@ function M.spine()
   spine_editor.open(session)
 end
 
+function M.preview()
+  local server = require("epubedit.server")
+  local session = module.get_current_session()
+
+  if not session then
+    vim.notify("No active EPUB session. Run :EpubEditOpen first.", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Get current buffer path
+  local current_file = vim.api.nvim_buf_get_name(0)
+  if current_file == "" then
+    vim.notify("No file in current buffer.", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Get OPF directory (this is what we'll serve)
+  local opf_dir = vim.fn.fnamemodify(session.opf, ":h")
+
+  -- Calculate relative path from OPF directory to current file
+  local relative_path = vim.fn.fnamemodify(current_file, ":.")
+
+  -- Make it relative to OPF directory
+  local opf_dir_normalized = vim.fn.fnamemodify(opf_dir, ":p")
+  local current_file_normalized = vim.fn.fnamemodify(current_file, ":p")
+
+  if not current_file_normalized:find(opf_dir_normalized, 1, true) then
+    vim.notify("Current file is not within the EPUB workspace.", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Remove OPF directory prefix and leading slash
+  local url_path = current_file_normalized:sub(#opf_dir_normalized + 1):gsub("^/+", ""):gsub("^\\+", "")
+
+  -- Convert backslashes to forward slashes for URL
+  url_path = url_path:gsub("\\", "/")
+
+  -- Start server if not running
+  if not server.is_running() then
+    local ok, err = server.start(opf_dir)
+    if not ok then
+      vim.notify("Failed to start preview server: " .. (err or "unknown error"), vim.log.levels.ERROR)
+      return
+    end
+    vim.notify(string.format("Preview server started on port %d", server.get_port()), vim.log.levels.INFO)
+  end
+
+  -- Build URL
+  local url = string.format("http://127.0.0.1:%d/%s", server.get_port(), url_path)
+
+  -- Open in browser
+  local ok, err = server.open_browser(url)
+  if not ok then
+    vim.notify("Failed to open browser: " .. (err or "unknown error"), vim.log.levels.ERROR)
+    return
+  end
+
+  vim.notify(string.format("Opening preview: %s", url), vim.log.levels.INFO)
+end
+
 -- ensure internal module has defaults even before setup() is called
 module.configure(M.config)
 

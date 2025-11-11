@@ -40,6 +40,12 @@ end, {
   desc = "Open the spine editor to manage reading order",
 })
 
+vim.api.nvim_create_user_command("EpubEditPreview", function()
+  epubedit.preview()
+end, {
+  desc = "Open the current EPUB file in a web browser for preview",
+})
+
 local auto_group = vim.api.nvim_create_augroup("EpubEditAutoOpen", { clear = true })
 
 vim.api.nvim_create_autocmd("BufReadCmd", {

@@ -585,6 +585,12 @@ local function cleanup_session(session, config, opts)
     M.state.current = nil
   end
 
+  -- Stop preview server if running
+  local ok_server, server = pcall(require, "epubedit.server")
+  if ok_server and server.is_running() then
+    server.stop()
+  end
+
   emit_event("EpubEditSessionClosed", {
     source = session.source,
     workspace = session.workspace,

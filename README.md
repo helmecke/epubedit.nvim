@@ -57,6 +57,7 @@ Tip: launching Neovim with an EPUB file (`nvim book.epub`) automatically hands t
 - `:EpubEditClose` – Abandon the current workspace without saving, clean up the temp directory, and restore the previous working directory.
 - `:EpubEditMetadata` – Open a floating window to edit the EPUB's metadata (title, author, etc.).
 - `:EpubEditSpine` – Open a buffer to edit the EPUB's reading order (spine).
+- `:EpubEditPreview` – Open the current XHTML/HTML file in your default web browser for live preview.
 - `:EpubEditCheck` – Run epubcheck and `xmllint --noout` against the active workspace, surfacing diagnostics in the quickfix list.
 
 ### Metadata Editor
@@ -66,6 +67,10 @@ Run `:EpubEditMetadata` to open a floating window for editing the `content.opf` 
 ### Spine Editor
 
 Run `:EpubEditSpine` to open a special buffer displaying the EPUB's reading order (spine). Each line shows the `href` of a content document in the order readers will encounter them. Reorder lines by cutting and pasting (dd/p), moving blocks with visual mode, or any other Neovim editing commands. Save with `:w` or `<C-s>` to write the new order back to the `content.opf` file. Press `q` to close the editor without saving.
+
+### Preview Mode
+
+Run `:EpubEditPreview` while editing an XHTML or HTML file to open it in your default web browser. The plugin automatically starts a local HTTP server (using Python's `http.server`) serving from the OPF directory on an automatically-selected available port. The server runs in the background and is automatically stopped when you close the EPUB session. URLs are mapped relative to the OPF directory, ensuring that internal links and resources (CSS, images, etc.) load correctly in the browser.
 
 ### Health Check
 

@@ -58,6 +58,15 @@ Requirements~
     `<C-s>` to write the new order back to the `content.opf` file. Press `q`
     to close the editor without saving.
 
+:EpubEditPreview~
+    Open the current XHTML or HTML file in your default web browser. The
+    plugin automatically starts a local HTTP server (using Python's
+    `http.server`) serving from the OPF directory on an automatically-selected
+    available port. The server runs in the background and is automatically
+    stopped when you close the EPUB session. URLs are mapped relative to the
+    OPF directory, ensuring that internal links and resources (CSS, images,
+    etc.) load correctly in the browser.
+
 :EpubEditCheck~
     Validate the active workspace by packaging it and running `epubcheck`
     followed by `xmllint --noout` on OPF/XHTML files. Diagnostics land in the

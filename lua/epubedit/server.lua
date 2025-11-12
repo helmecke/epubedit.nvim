@@ -53,7 +53,14 @@ end
 ---@return string|nil error
 function M.start(base_dir)
   if state.handle then
-    return true, nil -- Already running
+    -- Check if it's serving the same directory
+    if state.base_dir == base_dir then
+      return true, nil -- Already running with correct directory
+    else
+      -- Stop the old server first
+      M.stop()
+      vim.loop.sleep(100) -- Give it time to release the port
+    end
   end
 
   if not is_python_available() then
@@ -66,13 +73,22 @@ function M.start(base_dir)
     return false, "Could not find an available port"
   end
 
-  -- Start Python HTTP server
+  -- Start Python sync server
   local python_cmd = get_python_cmd()
+  local script_path = vim.fn.stdpath("config") .. "/lua/epubedit/sync_server.py"
+
+  if vim.fn.filereadable(script_path) == 0 then
+    script_path = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h") .. "/sync_server.py"
+  end
+
+  local stdout = vim.loop.new_pipe(false)
+  local stderr = vim.loop.new_pipe(false)
+
   local handle, pid
   handle, pid = vim.loop.spawn(python_cmd, {
-    args = { "-m", "http.server", tostring(port), "--bind", "127.0.0.1" },
+    args = { script_path, tostring(port), base_dir },
     cwd = base_dir,
-    stdio = { nil, nil, nil }, -- Don't capture output
+    stdio = { nil, stdout, stderr },
   }, function(code, signal)
     -- Server stopped
     if state.handle then
@@ -81,18 +97,55 @@ function M.start(base_dir)
       state.port = nil
       state.base_dir = nil
     end
+    if stdout and not stdout:is_closing() then
+      stdout:close()
+    end
+    if stderr and not stderr:is_closing() then
+      stderr:close()
+    end
   end)
 
   if not handle then
     return false, "Failed to start HTTP server"
   end
 
+  -- Read stderr for error detection
+  local startup_error = nil
+  if stderr then
+    stderr:read_start(function(err, data)
+      if data then
+        if data:match("Address already in use") or data:match("OSError") then
+          startup_error = "Port " .. port .. " is already in use"
+          vim.schedule(function()
+            vim.notify("Server startup failed: " .. startup_error, vim.log.levels.ERROR)
+          end)
+        elseif data:match("Error") or data:match("Traceback") then
+          vim.schedule(function()
+            vim.notify("Server error: " .. data, vim.log.levels.ERROR)
+          end)
+        end
+      end
+    end)
+  end
+
   state.handle = handle
   state.port = port
   state.base_dir = base_dir
 
-  -- Give server a moment to start
-  vim.defer_fn(function() end, 100)
+  -- Give server a moment to start and check for errors
+  vim.defer_fn(function()
+    if startup_error then
+      vim.schedule(function()
+        if state.handle then
+          state.handle:kill("sigterm")
+          state.handle = nil
+          state.port = nil
+          state.base_dir = nil
+        end
+        vim.notify("Server startup failed: " .. startup_error, vim.log.levels.ERROR)
+      end)
+    end
+  end, 200)
 
   return true, nil
 end
@@ -123,6 +176,42 @@ end
 ---@return string|nil base_dir
 function M.get_base_dir()
   return state.base_dir
+end
+
+---Notify the server of a file change to trigger browser reload
+---@param filepath string Path to the changed file
+---@return boolean success
+function M.notify_change(filepath)
+  if not state.port then
+    return false
+  end
+
+  local url = string.format("http://127.0.0.1:%d/__epubedit_reload__", state.port)
+  local payload = vim.fn.json_encode({ file = filepath })
+
+  local handle = vim.loop.spawn("curl", {
+    args = {
+      "-X",
+      "POST",
+      "-H",
+      "Content-Type: application/json",
+      "-d",
+      payload,
+      "--max-time",
+      "1",
+      "-s",
+      url,
+    },
+    detached = true,
+    stdio = { nil, nil, nil },
+  }, function() end)
+
+  if handle then
+    vim.loop.close(handle)
+    return true
+  end
+
+  return false
 end
 
 ---Check if running in WSL

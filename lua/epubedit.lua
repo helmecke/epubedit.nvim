@@ -86,6 +86,9 @@ end
 
 ---@return boolean
 function M.cleanup()
+  local file_watcher = require("epubedit.file_watcher")
+  file_watcher.stop()
+
   local ok, err = module.cleanup(M.config)
   if not ok and err then
     vim.notify(err, vim.log.levels.ERROR)
@@ -148,6 +151,7 @@ end
 
 function M.preview()
   local server = require("epubedit.server")
+  local file_watcher = require("epubedit.file_watcher")
   local session = module.get_current_session()
 
   if not session then
@@ -191,6 +195,20 @@ function M.preview()
       return
     end
     vim.notify(string.format("Preview server started on port %d", server.get_port()), vim.log.levels.INFO)
+
+    -- Use BufWritePost autocmd for browser sync (recursive fs_event doesn't work on Linux)
+    local augroup = vim.api.nvim_create_augroup("EpubEditBrowserSync", { clear = true })
+    vim.api.nvim_create_autocmd("BufWritePost", {
+      group = augroup,
+      pattern = { "*.xhtml", "*.html", "*.htm", "*.css" },
+      callback = function(args)
+        local filepath = vim.fn.expand("%:p")
+        -- Only trigger if file is within the EPUB workspace
+        if filepath:find(opf_dir, 1, true) then
+          server.notify_change(filepath)
+        end
+      end,
+    })
   end
 
   -- Build URL

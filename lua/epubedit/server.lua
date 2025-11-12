@@ -18,9 +18,10 @@ local function find_available_port(start_port)
     local port = start_port + i
     local handle = vim.loop.new_tcp()
     if handle then
-      local ok = handle:bind("127.0.0.1", port)
+      -- Wrap bind in pcall to ensure handle is always closed even if bind throws
+      local success, result = pcall(handle.bind, handle, "127.0.0.1", port)
       handle:close()
-      if ok then
+      if success and result then
         return port
       end
     end

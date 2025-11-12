@@ -56,3 +56,23 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
     epubedit._auto_open(match, args.buf)
   end,
 })
+
+-- Cleanup resources on Neovim exit
+local cleanup_group = vim.api.nvim_create_augroup("EpubEditCleanup", { clear = true })
+
+vim.api.nvim_create_autocmd("VimLeavePre", {
+  group = cleanup_group,
+  callback = function()
+    -- Stop the preview server if running
+    local server = require("epubedit.server")
+    if server.is_running() then
+      server.stop()
+    end
+
+    -- Clean up all active sessions
+    local module = require("epubedit.module")
+    if module.state.current then
+      module.cleanup()
+    end
+  end,
+})

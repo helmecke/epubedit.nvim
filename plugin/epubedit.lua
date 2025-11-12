@@ -46,6 +46,18 @@ end, {
   desc = "Open the current EPUB file in a web browser for preview",
 })
 
+vim.api.nvim_create_user_command("EpubEditToc", function()
+  epubedit.toc()
+end, {
+  desc = "Open the table of contents editor for the active EPUB",
+})
+
+vim.api.nvim_create_user_command("EpubEditTocGenerate", function()
+  epubedit.toc_generate()
+end, {
+  desc = "Generate table of contents from document headings (h1-h6)",
+})
+
 local auto_group = vim.api.nvim_create_augroup("EpubEditAutoOpen", { clear = true })
 
 vim.api.nvim_create_autocmd("BufReadCmd", {

@@ -206,6 +206,65 @@ function M.preview()
   vim.notify(string.format("Opening preview: %s", url), vim.log.levels.INFO)
 end
 
+function M.toc()
+  local toc_editor = require("epubedit.toc_editor")
+  local session = module.get_current_session()
+  if not session then
+    vim.notify("No active EPUB session.", vim.log.levels.ERROR)
+    return
+  end
+  toc_editor.open(session)
+end
+
+function M.toc_generate()
+  local toc_generator = require("epubedit.toc_generator")
+  local session = module.get_current_session()
+  if not session then
+    vim.notify("No active EPUB session.", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Ask user for max depth
+  vim.ui.input({ prompt = "Max heading depth (1-6): ", default = "3" }, function(input)
+    if not input then
+      return
+    end
+
+    local max_depth = tonumber(input)
+    if not max_depth or max_depth < 1 or max_depth > 6 then
+      vim.notify("Invalid depth. Must be between 1 and 6.", vim.log.levels.ERROR)
+      return
+    end
+
+    -- First, ensure headings have IDs
+    local ok, err = toc_generator.add_heading_ids(session)
+    if not ok then
+      vim.notify("Failed to add heading IDs: " .. (err or "unknown error"), vim.log.levels.ERROR)
+      return
+    end
+
+    -- Generate TOC from headings
+    local entries, gen_err = toc_generator.generate_from_headings(session, { max_depth = max_depth })
+    if not entries then
+      vim.notify("Failed to generate TOC: " .. (gen_err or "unknown error"), vim.log.levels.ERROR)
+      return
+    end
+
+    -- Save the generated TOC
+    local toc_manager = require("epubedit.toc_manager")
+    local save_ok, save_err = toc_manager.set_toc(session, entries)
+    if not save_ok then
+      vim.notify("Failed to save TOC: " .. (save_err or "unknown error"), vim.log.levels.ERROR)
+      return
+    end
+
+    vim.notify(
+      string.format("Generated and saved TOC with max depth %d from document headings.", max_depth),
+      vim.log.levels.INFO
+    )
+  end)
+end
+
 -- ensure internal module has defaults even before setup() is called
 module.configure(M.config)
 

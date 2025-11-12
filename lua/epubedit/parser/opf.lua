@@ -78,6 +78,7 @@ function M.parse(opf_path)
         id = item._attr.id,
         href = item._attr.href,
         media_type = item._attr["media-type"],
+        properties = item._attr.properties,
       }
     end
   end

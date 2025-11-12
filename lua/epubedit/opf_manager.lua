@@ -281,6 +281,69 @@ function M.add_manifest_entry(session, file_path, opts)
   return true, href
 end
 
+function M.delete_manifest_entry(session, file_path)
+  if not session or not session.opf then
+    return false, "no active OPF"
+  end
+  local opf_path = session.opf
+  local parsed, err = opf_parser.parse(opf_path)
+  if not parsed then
+    return false, err
+  end
+
+  local normalized = normalize_path(file_path)
+  if not normalized then
+    return false, "invalid path"
+  end
+
+  local base_dir = parsed.base_dir or (fn.fnamemodify(opf_path, ":h") .. path_sep)
+  local target_item = nil
+  for _, item in pairs(parsed.manifest or {}) do
+    if resolve_item_path(base_dir, item) == normalized then
+      target_item = item
+      break
+    end
+  end
+
+  if not target_item or not target_item.id then
+    return false, "asset not registered in OPF"
+  end
+
+  local lines = fn.readfile(opf_path)
+  local new_lines = {}
+  local removed_manifest = false
+  local removed_spine = false
+
+  for _, line in ipairs(lines) do
+    local skip = false
+
+    if line:find('<item[%s>]') and line:find('id="' .. vim.pesc(target_item.id) .. '"') then
+      skip = true
+      removed_manifest = true
+    end
+
+    if line:find('<itemref[%s>]') and line:find('idref="' .. vim.pesc(target_item.id) .. '"') then
+      skip = true
+      removed_spine = true
+    end
+
+    if not skip then
+      table.insert(new_lines, line)
+    end
+  end
+
+  if not removed_manifest then
+    return false, "manifest entry not found in OPF"
+  end
+
+  local ok_write, write_err = write_file(opf_path, table.concat(new_lines, "\n"))
+  if not ok_write then
+    return false, write_err
+  end
+
+  return true, target_item.id
+end
+
 local function reorder_spine_entries(lines, spine_start, entries)
   local new_lines = {}
   local inserted = false

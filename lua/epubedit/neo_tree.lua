@@ -502,6 +502,30 @@ local commands = vim.tbl_extend("force", {}, common_commands, {
       end)
     end)
   end,
+  delete = function(state, callback)
+    local node = state.tree and state.tree:get_node()
+    if not node or node.type == "message" then
+      return
+    end
+
+    local session = core.state.current
+    if session and node.path then
+      local ok, err = opf_manager.delete_manifest_entry(session, node.path)
+      if not ok then
+        vim.notify("epubedit: failed to remove from OPF: " .. (err or "unknown error"), vim.log.levels.WARN)
+      end
+    end
+
+    fs_actions.delete_node(node.path, function()
+      if type(callback) == "function" then
+        callback()
+      end
+      vim.schedule(function()
+        state.dirty = true
+        manager.refresh(state.name)
+      end)
+    end)
+  end,
   text_move_up = function(state)
     local node = state.tree and state.tree:get_node()
     if not node or node.type ~= "file" then

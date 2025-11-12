@@ -1,4 +1,5 @@
 vendor/plenary.nvim
 openspec
 AGENTS.md
+CLAUDE.md
 .nvimlog

@@ -1,4 +1,5 @@
 local module = require("epubedit.module")
+local opf_manager = require("epubedit.opf_manager")
 
 ---@class epubedit.Config
 ---@field zip_bin string Executable used to create EPUB archives.
@@ -280,6 +281,145 @@ function M.toc_generate()
       string.format("Generated and saved TOC with max depth %d from document headings.", max_depth),
       vim.log.levels.INFO
     )
+  end)
+end
+
+function M.add_file()
+  local session = module.get_current_session()
+  if not session then
+    vim.notify("No active EPUB session.", vim.log.levels.ERROR)
+    return
+  end
+
+  local opf_dir = vim.fn.fnamemodify(session.opf, ":h")
+  local workspace = vim.fn.fnamemodify(session.workspace, ":p")
+
+  vim.ui.input({ prompt = "Source file path: ", completion = "file" }, function(source_path)
+    if not source_path or source_path == "" then
+      return
+    end
+
+    source_path = source_path:gsub("^['\"]", ""):gsub("['\"]$", "")
+    source_path = vim.fn.fnamemodify(source_path, ":p")
+
+    if vim.fn.filereadable(source_path) == 0 then
+      vim.notify("epubedit: file not found or not readable: " .. source_path, vim.log.levels.ERROR)
+      return
+    end
+
+    local source_filename = vim.fn.fnamemodify(source_path, ":t")
+    local default_dest = opf_dir .. "/" .. source_filename
+
+    vim.ui.input({ prompt = "Destination path (relative or absolute): ", default = default_dest }, function(dest_input)
+      if not dest_input or dest_input == "" then
+        return
+      end
+
+      dest_input = dest_input:gsub("^['\"]", ""):gsub("['\"]$", "")
+
+      local dest_path
+      if vim.fn.fnamemodify(dest_input, ":p") == dest_input then
+        dest_path = vim.fn.fnamemodify(dest_input, ":p")
+        if dest_path:sub(1, #workspace) ~= workspace then
+          vim.notify("epubedit: destination must be within workspace: " .. workspace, vim.log.levels.ERROR)
+          return
+        end
+      else
+        dest_path = opf_dir .. "/" .. dest_input
+        dest_path = vim.fn.fnamemodify(dest_path, ":p")
+      end
+
+      local source_ext = source_path:match("%.([^%.]+)$")
+      local dest_ext = dest_path:match("%.([^%.]+)$")
+      if source_ext and dest_ext then
+        source_ext = source_ext:lower()
+        dest_ext = dest_ext:lower()
+        if source_ext ~= dest_ext then
+          vim.notify(
+            string.format("epubedit: file extension mismatch: source .%s != destination .%s", source_ext, dest_ext),
+            vim.log.levels.ERROR
+          )
+          return
+        end
+      end
+
+      local function get_group_from_path(path)
+        local relative = path:sub(#workspace + 1):gsub("^[/\\]+", "")
+        local opf_relative = opf_dir:sub(#workspace + 1):gsub("^[/\\]+", "")
+        if opf_relative ~= "" then
+          local prefix = opf_relative .. "/"
+          if relative:sub(1, #prefix) == prefix then
+            relative = relative:sub(#prefix + 1)
+          end
+        end
+        local segment = relative:match("^([^/\\]+)")
+        if segment then
+          segment = segment:lower()
+          local known = { text = true, styles = true, images = true, fonts = true, audio = true, video = true, misc = true }
+          if known[segment] then
+            return segment
+          end
+        end
+        return nil
+      end
+
+      local dest_group = get_group_from_path(dest_path)
+      if dest_group then
+        local expected_groups = {
+          xhtml = "text",
+          html = "text",
+          htm = "text",
+          css = "styles",
+          jpg = "images",
+          jpeg = "images",
+          png = "images",
+          gif = "images",
+          svg = "images",
+          webp = "images",
+          ttf = "fonts",
+          otf = "fonts",
+          woff = "fonts",
+          woff2 = "fonts",
+          mp3 = "audio",
+          mp4 = "video",
+        }
+        if dest_ext and expected_groups[dest_ext] and expected_groups[dest_ext] ~= dest_group then
+          vim.notify(
+            string.format(
+              "epubedit: file type mismatch: .%s files should be in '%s' group, not '%s'",
+              dest_ext,
+              expected_groups[dest_ext],
+              dest_group
+            ),
+            vim.log.levels.ERROR
+          )
+          return
+        end
+      end
+
+      local dest_dir = vim.fn.fnamemodify(dest_path, ":h")
+      if vim.fn.isdirectory(dest_dir) == 0 then
+        vim.fn.mkdir(dest_dir, "p")
+      end
+
+      local ok, err = pcall(vim.loop.fs_copyfile, source_path, dest_path)
+      if not ok then
+        vim.notify("epubedit: failed to copy file: " .. tostring(err), vim.log.levels.ERROR)
+        return
+      end
+
+      local add_to_spine = dest_group == "text"
+      local ok_manifest = opf_manager.add_manifest_entry(session, dest_path, {
+        group = dest_group,
+        add_to_spine = add_to_spine,
+      })
+      if not ok_manifest then
+        vim.notify("epubedit: failed to update content.opf for new file " .. dest_path, vim.log.levels.WARN)
+        return
+      end
+
+      vim.notify(string.format("Added file: %s", dest_path), vim.log.levels.INFO)
+    end)
   end)
 end
 

@@ -58,6 +58,12 @@ end, {
   desc = "Generate table of contents from document headings (h1-h6)",
 })
 
+vim.api.nvim_create_user_command("EpubEditAddFile", function()
+  epubedit.add_file()
+end, {
+  desc = "Add an external file to the active EPUB workspace",
+})
+
 local auto_group = vim.api.nvim_create_augroup("EpubEditAutoOpen", { clear = true })
 
 vim.api.nvim_create_autocmd("BufReadCmd", {

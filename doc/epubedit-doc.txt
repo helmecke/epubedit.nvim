@@ -1,4 +1,4 @@
-*epubedit-doc.txt*      For Neovim >= 0.9.4      Last change: 2025 November 11
+*epubedit-doc.txt*      For Neovim >= 0.9.4      Last change: 2025 November 12
 
 ==============================================================================
 Table of Contents                             *epubedit-doc-table-of-contents*

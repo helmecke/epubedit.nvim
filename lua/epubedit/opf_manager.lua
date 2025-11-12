@@ -1,33 +1,27 @@
 local fn = vim.fn
 local opf_parser = require("epubedit.parser.opf")
+local path_util = require("epubedit.utils.path")
+local io_util = require("epubedit.utils.io")
 
-local path_sep = package.config:sub(1, 1)
+local path_sep = path_util.sep
 
 local function normalize_path(path)
   if not path or path == "" then
     return nil
   end
-  return fn.fnamemodify(path, ":p")
+  return path_util.normalize(path)
 end
 
 local function read_file(path)
-  local file = io.open(path, "r")
-  if not file then
-    return nil, string.format("failed to read %s", path)
+  local content, err = io_util.read_file(path)
+  if not content then
+    return nil, err or string.format("failed to read %s", path)
   end
-  local content = file:read("*a")
-  file:close()
   return content
 end
 
 local function write_file(path, content)
-  local file, err = io.open(path, "w")
-  if not file then
-    return false, err
-  end
-  file:write(content)
-  file:close()
-  return true
+  return io_util.write_file(path, content)
 end
 
 local function normalize_href(path)

@@ -1,13 +1,14 @@
 local fn = vim.fn
 local opf_parser = require("epubedit.parser.opf")
+local path_util = require("epubedit.utils.path")
 
-local path_sep = package.config:sub(1, 1)
+local path_sep = path_util.sep
 
 local function normalize_workspace(path)
   if not path or path == "" then
     return path
   end
-  return fn.fnamemodify(path, ":p")
+  return path_util.normalize(path)
 end
 
 local function relative_to_workspace(session, path)

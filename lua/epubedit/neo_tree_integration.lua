@@ -2,6 +2,7 @@ local SOURCE_NAME = "epubedit"
 
 local opf_manager = require("epubedit.opf_manager")
 local core = require("epubedit.module")
+local path_util = require("epubedit.utils.path")
 
 local M = {}
 
@@ -60,7 +61,7 @@ local function normalize_path(path)
   if not path or path == "" then
     return nil
   end
-  return vim.fn.fnamemodify(path, ":p")
+  return path_util.normalize(path)
 end
 
 local function update_session_assets(session, old_path, new_path)

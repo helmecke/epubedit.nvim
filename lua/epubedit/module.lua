@@ -1,32 +1,18 @@
 local uv = vim.loop
 local fn = vim.fn
+local path_util = require("epubedit.utils.path")
+local io_util = require("epubedit.utils.io")
+local command_util = require("epubedit.utils.command")
 
-local path_sep = package.config:sub(1, 1)
-local escaped_sep = path_sep == "\\" and "\\\\" or path_sep
+local path_sep = path_util.sep
+local escaped_sep = path_util.escaped_sep
 
 local function join_paths(...)
-  local segments = { ... }
-  local parts = {}
-  for _, segment in ipairs(segments) do
-    if segment and segment ~= "" then
-      table.insert(parts, segment)
-    end
-  end
-  return table.concat(parts, path_sep)
+  return path_util.join(...)
 end
 
 local function normalize_path(path)
-  if not path or path == "" then
-    return path
-  end
-  local normalized = fn.fnamemodify(path, ":p")
-  if normalized == path_sep then
-    return normalized
-  end
-  if normalized:match("^%a:" .. escaped_sep .. "$") then
-    return normalized
-  end
-  return normalized:gsub(escaped_sep .. "+$", "")
+  return path_util.normalize(path)
 end
 
 local function ensure_directory(path)
@@ -43,15 +29,11 @@ local function ensure_directory(path)
 end
 
 local function file_exists(path)
-  return path and uv.fs_stat(path) ~= nil
+  return io_util.file_exists(path)
 end
 
 local function read_file(path)
-  if not file_exists(path) then
-    return nil, string.format("file not found: %s", path)
-  end
-  local content = table.concat(fn.readfile(path), "\n")
-  return content
+  return io_util.read_file(path)
 end
 
 local function normalize_command_value(cmd)
@@ -242,53 +224,7 @@ local function unique_insert(list, value, seen)
 end
 
 local function run_command(cmd, args, opts)
-  opts = opts or {}
-  local stdout, stderr = {}, {}
-  local job_id = fn.jobstart(vim.list_extend({ cmd }, args or {}), {
-    cwd = opts.cwd,
-    stdout_buffered = true,
-    stderr_buffered = true,
-    on_stdout = function(_, data)
-      if not data then
-        return
-      end
-      for _, line in ipairs(data) do
-        if line ~= "" then
-          table.insert(stdout, line)
-        end
-      end
-    end,
-    on_stderr = function(_, data)
-      if not data then
-        return
-      end
-      for _, line in ipairs(data) do
-        if line ~= "" then
-          table.insert(stderr, line)
-        end
-      end
-    end,
-  })
-
-  if job_id <= 0 then
-    return false, string.format("failed to start %s", cmd)
-  end
-
-  local status = fn.jobwait({ job_id }, opts.timeout or 60000)[1]
-  if status == -1 then
-    fn.jobstop(job_id)
-    return false, string.format("%s timed out", cmd)
-  end
-
-  if status ~= 0 then
-    local message = table.concat(stderr, "\n")
-    if message == "" then
-      message = string.format("%s failed with exit code %d", cmd, status)
-    end
-    return false, message
-  end
-
-  return true, table.concat(stdout, "\n")
+  return command_util.run(cmd, args, opts)
 end
 
 local function build_quickfix_entries(lines, session, source)
@@ -401,11 +337,7 @@ local function delete_directory(path)
 end
 
 local function relative_to(root, relative_path)
-  if not relative_path or relative_path == "" then
-    return nil
-  end
-  local sanitized = relative_path:gsub("/", path_sep)
-  return normalize_path(join_paths(root, sanitized))
+  return path_util.relative_to(root, relative_path)
 end
 
 local function dependency_status(config)

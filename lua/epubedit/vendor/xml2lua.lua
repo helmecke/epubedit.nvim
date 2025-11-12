@@ -5,7 +5,7 @@ local xml2lua = {}
 
 local function parseargs(s)
   local arg = {}
-  s:gsub("([%-%w_]+)%s*=%s*([\"'])(.-)%2", function(w, _, a)
+  s:gsub("([%-%w_:]+)%s*=%s*([\"'])(.-)%2", function(w, _, a)
     arg[w] = a
   end)
   return arg

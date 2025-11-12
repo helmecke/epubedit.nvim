@@ -94,12 +94,40 @@ local M = {
   GROUP_DEFS = GROUP_DEFS,
 }
 
+local function sanitize_href(href)
+  if not href or href == "" then
+    return nil
+  end
+  local sanitized = href:gsub("\\", "/")
+  sanitized = sanitized:gsub("^/+", "")
+  while sanitized:find("%.%./") or sanitized:find("/%./") or sanitized:find("^%./") do
+    sanitized = sanitized:gsub("%.%./", "")
+    sanitized = sanitized:gsub("/%./", "/")
+    sanitized = sanitized:gsub("^%./", "")
+  end
+  if sanitized:match("^[a-zA-Z]:") then
+    return nil
+  end
+  return sanitized
+end
+
 local function resolve_path(session, parsed, entry)
   if not entry or not entry.href or entry.href == "" then
     return nil
   end
+  local safe_href = sanitize_href(entry.href)
+  if not safe_href or safe_href == "" then
+    return nil
+  end
   local base = parsed.base_dir or (session.workspace .. path_sep)
-  local path = fn.fnamemodify(base .. entry.href, ":p")
+  local path = fn.fnamemodify(base .. safe_href, ":p")
+  if not path then
+    return nil
+  end
+  local normalized_base = fn.fnamemodify(base, ":p")
+  if normalized_base and path:sub(1, #normalized_base) ~= normalized_base then
+    return nil
+  end
   return path
 end
 

@@ -53,12 +53,41 @@ local function rel_href(base_dir, target)
   return normalize_href(rel)
 end
 
+local function sanitize_href(href)
+  if not href or href == "" then
+    return nil
+  end
+  local sanitized = href:gsub("\\", "/")
+  sanitized = sanitized:gsub("^/+", "")
+  while sanitized:find("%.%./") or sanitized:find("/%./") or sanitized:find("^%./") do
+    sanitized = sanitized:gsub("%.%./", "")
+    sanitized = sanitized:gsub("/%./", "/")
+    sanitized = sanitized:gsub("^%./", "")
+  end
+  if sanitized:match("^[a-zA-Z]:") then
+    return nil
+  end
+  return sanitized
+end
+
 local function resolve_item_path(base_dir, item)
   if not item or not item.href then
     return nil
   end
-  local full = base_dir .. item.href
-  return normalize_path(full)
+  local safe_href = sanitize_href(item.href)
+  if not safe_href or safe_href == "" then
+    return nil
+  end
+  local full = base_dir .. safe_href
+  local resolved = normalize_path(full)
+  if not resolved then
+    return nil
+  end
+  local normalized_base = normalize_path(base_dir)
+  if normalized_base and resolved:sub(1, #normalized_base) ~= normalized_base then
+    return nil
+  end
+  return resolved
 end
 
 local media_by_ext = {

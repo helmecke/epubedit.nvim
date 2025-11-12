@@ -82,6 +82,23 @@ local function normalize_separators(value)
   return value:gsub("\\", "/")
 end
 
+local function sanitize_path_component(component)
+  if not component or component == "" then
+    return nil
+  end
+  local sanitized = component:gsub("\\", "/")
+  sanitized = sanitized:gsub("^/+", "")
+  while sanitized:find("%.%./") or sanitized:find("/%./") or sanitized:find("^%./") do
+    sanitized = sanitized:gsub("%.%./", "")
+    sanitized = sanitized:gsub("/%./", "/")
+    sanitized = sanitized:gsub("^%./", "")
+  end
+  if sanitized:match("^[a-zA-Z]:") then
+    return component
+  end
+  return sanitized
+end
+
 local function resolve_workspace_path(raw_path, session)
   if not raw_path or raw_path == "" or not session or not session.workspace or session.workspace == "" then
     return nil
@@ -114,9 +131,12 @@ local function resolve_workspace_path(raw_path, session)
 
   local rel_from_epub = normalized_sep:match("%.epub/(.+)")
   if rel_from_epub and rel_from_epub ~= "" then
-    local resolved = try_candidate(join_paths(workspace, rel_from_epub))
-    if resolved then
-      return resolved
+    local safe_rel = sanitize_path_component(rel_from_epub)
+    if safe_rel and safe_rel ~= "" then
+      local resolved = try_candidate(join_paths(workspace, safe_rel))
+      if resolved then
+        return resolved
+      end
     end
     if session.assets then
       for _, asset in ipairs(session.assets) do
@@ -129,9 +149,12 @@ local function resolve_workspace_path(raw_path, session)
   end
 
   if not is_absolute then
-    local resolved = try_candidate(join_paths(workspace, trimmed))
-    if resolved then
-      return resolved
+    local safe_trimmed = sanitize_path_component(trimmed)
+    if safe_trimmed and safe_trimmed ~= "" then
+      local resolved = try_candidate(join_paths(workspace, safe_trimmed))
+      if resolved then
+        return resolved
+      end
     end
   end
 

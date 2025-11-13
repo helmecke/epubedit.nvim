@@ -1,0 +1,150 @@
+{
+  "EPUB Chapter Template": {
+    "prefix": "chap",
+    "body": [
+      "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
+      "<!DOCTYPE html>",
+      "<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\">",
+      "<head>",
+      "  <title>${1:Chapter Title}</title>",
+      "  <link href=\"../Styles/${2:stylesheet}.css\" rel=\"stylesheet\" type=\"text/css\" />",
+      "</head>",
+      "<body>",
+      "  <section epub:type=\"chapter\">",
+      "    <h1>${1:Chapter Title}</h1>",
+      "    $0",
+      "  </section>",
+      "</body>",
+      "</html>"
+    ],
+    "description": "Complete EPUB chapter template with proper XML declaration and namespace"
+  },
+  "EPUB Semantic Paragraph": {
+    "prefix": "p:",
+    "body": "<p epub:type=\"${1:normal}\">$2</p>$0",
+    "description": "Paragraph with epub:type attribute"
+  },
+  "EPUB Bridgehead": {
+    "prefix": "bridgehead",
+    "body": "<p epub:type=\"bridgehead\">$1</p>$0",
+    "description": "Bridgehead paragraph (unnumbered heading)"
+  },
+  "EPUB Section": {
+    "prefix": "section",
+    "body": [
+      "<section epub:type=\"${1:chapter}\">",
+      "  <h${2:2}>${3:Section Title}</h${2:2}>",
+      "  $0",
+      "</section>"
+    ],
+    "description": "Section element with epub:type"
+  },
+  "EPUB Blockquote": {
+    "prefix": "bq",
+    "body": [
+      "<blockquote>",
+      "  <p>$1</p>",
+      "</blockquote>$0"
+    ],
+    "description": "Blockquote with paragraph"
+  },
+  "EPUB Image": {
+    "prefix": "img",
+    "body": "<img src=\"../Images/${1:filename}.${2:jpg}\" alt=\"${3:description}\" />$0",
+    "description": "Image tag with EPUB relative path"
+  },
+  "EPUB Internal Link": {
+    "prefix": "alink",
+    "body": "<a href=\"${1:chapter}.xhtml#${2:anchor}\">$3</a>$0",
+    "description": "Internal chapter link with anchor"
+  },
+  "EPUB Footnote Reference": {
+    "prefix": "fnref",
+    "body": "<a epub:type=\"noteref\" href=\"#fn${1:1}\">$1</a>$0",
+    "description": "Footnote reference link"
+  },
+  "EPUB Footnote": {
+    "prefix": "footnote",
+    "body": [
+      "<aside epub:type=\"footnote\" id=\"fn${1:1}\">",
+      "  <p>$2</p>",
+      "</aside>$0"
+    ],
+    "description": "Footnote aside element"
+  },
+  "EPUB Emphasis": {
+    "prefix": "em",
+    "body": "<em>$1</em>$0",
+    "description": "Emphasis (italic) element"
+  },
+  "EPUB Strong": {
+    "prefix": "strong",
+    "body": "<strong>$1</strong>$0",
+    "description": "Strong (bold) element"
+  },
+  "EPUB Code": {
+    "prefix": "code",
+    "body": "<code>$1</code>$0",
+    "description": "Inline code element"
+  },
+  "EPUB Ordered List": {
+    "prefix": "ol",
+    "body": [
+      "<ol>",
+      "  <li>$1</li>",
+      "</ol>$0"
+    ],
+    "description": "Ordered (numbered) list"
+  },
+  "EPUB Unordered List": {
+    "prefix": "ul",
+    "body": [
+      "<ul>",
+      "  <li>$1</li>",
+      "</ul>$0"
+    ],
+    "description": "Unordered (bulleted) list"
+  },
+  "EPUB Definition List": {
+    "prefix": "dl",
+    "body": [
+      "<dl>",
+      "  <dt>$1</dt>",
+      "  <dd>$2</dd>",
+      "</dl>$0"
+    ],
+    "description": "Definition list (term and description)"
+  },
+  "EPUB Preformatted": {
+    "prefix": "pre",
+    "body": [
+      "<pre>",
+      "$1",
+      "</pre>$0"
+    ],
+    "description": "Preformatted text block"
+  },
+  "EPUB Div": {
+    "prefix": "div",
+    "body": [
+      "<div class=\"${1:classname}\">",
+      "  $2",
+      "</div>$0"
+    ],
+    "description": "Div with class attribute"
+  },
+  "EPUB Span": {
+    "prefix": "span",
+    "body": "<span class=\"${1:classname}\">$2</span>$0",
+    "description": "Span with class attribute"
+  },
+  "EPUB Scene Break": {
+    "prefix": "scene",
+    "body": [
+      "<div class=\"scenebreak\">",
+      "  <hr />",
+      "</div>$0"
+    ],
+    "description": "Scene break separator"
+  }
+}

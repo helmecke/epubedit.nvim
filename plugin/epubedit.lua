@@ -64,6 +64,12 @@ end, {
   desc = "Add an external file to the active EPUB workspace",
 })
 
+vim.api.nvim_create_user_command("EpubEditConfigureSnippets", function()
+  require("epubedit.snippets").setup()
+end, {
+  desc = "Configure LuaSnip for EPUB snippet support",
+})
+
 local auto_group = vim.api.nvim_create_augroup("EpubEditAutoOpen", { clear = true })
 
 vim.api.nvim_create_autocmd("BufReadCmd", {

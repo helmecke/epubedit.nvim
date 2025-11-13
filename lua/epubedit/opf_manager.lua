@@ -317,12 +317,12 @@ function M.delete_manifest_entry(session, file_path)
   for _, line in ipairs(lines) do
     local skip = false
 
-    if line:find('<item[%s>]') and line:find('id="' .. vim.pesc(target_item.id) .. '"') then
+    if line:find("<item[%s>]") and line:find('id="' .. vim.pesc(target_item.id) .. '"') then
       skip = true
       removed_manifest = true
     end
 
-    if line:find('<itemref[%s>]') and line:find('idref="' .. vim.pesc(target_item.id) .. '"') then
+    if line:find("<itemref[%s>]") and line:find('idref="' .. vim.pesc(target_item.id) .. '"') then
       skip = true
       removed_spine = true
     end

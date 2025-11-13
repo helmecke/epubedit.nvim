@@ -355,7 +355,8 @@ function M.add_file()
         local segment = relative:match("^([^/\\]+)")
         if segment then
           segment = segment:lower()
-          local known = { text = true, styles = true, images = true, fonts = true, audio = true, video = true, misc = true }
+          local known =
+            { text = true, styles = true, images = true, fonts = true, audio = true, video = true, misc = true }
           if known[segment] then
             return segment
           end

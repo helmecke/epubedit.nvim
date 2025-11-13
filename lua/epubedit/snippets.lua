@@ -3,10 +3,7 @@ local M = {}
 function M.configure_luasnip()
   local ok, luasnip = pcall(require, "luasnip")
   if not ok then
-    vim.notify(
-      "LuaSnip not found. Install it via LazyVim's coding.luasnip extra or manually.",
-      vim.log.levels.WARN
-    )
+    vim.notify("LuaSnip not found. Install it via LazyVim's coding.luasnip extra or manually.", vim.log.levels.WARN)
     return false
   end
 

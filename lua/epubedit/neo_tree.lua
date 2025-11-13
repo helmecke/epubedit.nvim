@@ -426,7 +426,9 @@ local commands = vim.tbl_extend("force", {}, common_commands, {
           end
         end
 
-        local dest_group = (folder.extra and folder.extra.group_id) or group_from_path(dest_path) or group_from_path(target_dir)
+        local dest_group = (folder.extra and folder.extra.group_id)
+          or group_from_path(dest_path)
+          or group_from_path(target_dir)
         if dest_group then
           local expected_groups = {
             xhtml = "text",

@@ -54,6 +54,8 @@ class SyncHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         if path == "/__epubedit_sync__":
             self.handle_sse()
+        elif path == "/__epubedit_sync_client__.js":
+            self.serve_sync_client_js()
         else:
             self.serve_with_injection()
 
@@ -65,6 +67,15 @@ class SyncHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_reload_trigger()
         else:
             self.send_error(404, "Not Found")
+
+    def serve_sync_client_js(self):
+        """Serve the sync client JavaScript as an external file"""
+        self.send_response(200)
+        self.send_header("Content-Type", "application/javascript; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(self.sync_client_script.encode("utf-8"))
 
     def handle_sse(self):
         """Server-Sent Events endpoint for browser clients"""
@@ -140,9 +151,8 @@ class SyncHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 try:
                     html_content = content.decode("utf-8")
 
-                    # For XHTML served as application/xhtml+xml, use external script approach
-                    # Inline scripts in XHTML are problematic, so serve as text/html instead
-                    inject_script = f"<script>{self.sync_client_script}</script>"
+                    # Use external script to avoid XHTML strict parsing issues
+                    inject_script = '<script src="/__epubedit_sync_client__.js"></script>'
 
                     if "</body>" in html_content:
                         html_content = html_content.replace(
@@ -161,9 +171,8 @@ class SyncHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
             self.send_response(200)
             if is_html:
-                # Always serve as text/html to avoid XHTML strict parsing issues with inline scripts
-                # Browsers will render XHTML documents correctly when served as text/html
-                self.send_header("Content-Type", "text/html; charset=utf-8")
+                # Serve XHTML as application/xhtml+xml for proper namespace support (epub:type, etc.)
+                self.send_header("Content-Type", "application/xhtml+xml; charset=utf-8")
             else:
                 self.guess_type(path)
             self.send_header("Content-Length", str(len(content)))
